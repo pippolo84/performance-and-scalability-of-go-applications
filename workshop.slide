@@ -1,0 +1,135 @@
+Performance and Scalability of Go Applications
+24 Sep 2019
+Tags: Go, performance, scalability
+
+Fabio Falzoi
+Senior Software Engineer @ Develer
+fabio.falzoi84@gmail.com
+https://github.com/Pippolo84
+@Pippolo84
+
+
+* Before starting
+
+- check you Go environment compiling and running this code
+    package main
+
+    import "fmt"
+
+    func main() {
+        fmt.Println("Hello world!")
+    }
+
+
+- download the workshop material
+    git clone git@github.com:Pippolo84/performance-and-scalability-of-go-applications.git
+
+- peeking inside the solution folders is not allowed ;-)
+
+* Introduction: the Isogram exercise
+
+Follow the instructions inside
+    
+    01-introduction/INSTRUCTIONS.md
+
+* Big O notation in a nutshell
+
+.link https://en.wikipedia.org/wiki/Big_O_notation Definition
+
+    Let f be a real valued function and g a real valued function. One writes:
+
+    f(x) = O(g(x)) for x -> +inf
+    
+    if for all sufficiently large values of x, the absolute value of f(x) is at most a positive
+    constant multiple of g(x).
+
+    That is, f(x) = O(g(x)) if and only if there exists a positive real number M and
+    a real number x0 such that
+
+    abs(f(x)) <= Mg(x) for all x >= x0
+
+* Time complexity examples
+
+- _O(1)_ constant time
+    Look-up table
+- _O(logn)_ logarithmic time
+    Binary search
+- _O(n)_ linear time
+    Linear search
+- _O(nlogn)_ linearithmic time
+    Merge sort
+- _O(n^2)_ quadratic time
+    Bubble sort
+
+* Isogram solutions
+
+1) Using a set
+
+    - iterate over the string
+    - for each rune: if it is already in the map, return false
+    - return true
+
+2) Using sorting
+
+    - sort the string
+    - check each pair of adjacent runes
+    - if you find a pair of equal runes, return false, otherwise return true
+
+3) Using linear searching
+
+    - iterate over the string
+    - for each rune, search for that rune in the remaining part of the string
+    - if found, return false, otherwise, return true
+
+*Quick quiz*: can you guess the time complexity of each solution?
+
+* Isogram solutions time complexities
+
+1) Using a set: _O(n)_
+2) Using sorting: _O(nlogn)_
+3) Using linear searching: _O(n^2)_
+
+* Let's benchmark them!
+
+Inside the solution folder
+
+    $ go test -run=^$ -bench=.
+    goos: linux
+    goarch: amd64
+    pkg: performance-and-scalability-of-go-applications/01-introduction/solution
+    BenchmarkIsIsogram/01-map-8               200000              7925 ns/op
+    BenchmarkIsIsogram/02-sorting-8           200000              5427 ns/op
+    BenchmarkIsIsogram/03-linear-search-8            1000000              1339 ns/op
+    ...
+    PASS
+    ok      performance-and-scalability-of-go-applications/01-introduction/solution 6.295s 
+
+Wait... What!?
+
+* Time complexity gotchas
+
+Do you remember the constant factor?
+
+* TODO
+grafici
+grafici per data set più grande
+fattore determinante: memory access pattern (soluzione con array di bool)
+
+* Take home message
+
+Time complexity with Big O notation can be misleading if applied blindly
+
+If we want to get the most ouf of our applications we need to:
+
+- understand our hardware, the Go runtime and their interactions
+- learn to profile and benchmark our application
+
+DOn't worry: the rest of this workshop is dedicated to that! ;-)
+
+* Roadmap
+
+- Modern CPU architecture
+- Benchmarking
+- Profiling
+- The Go scheduler
+- The Go memory allocator & garbage collector
