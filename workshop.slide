@@ -11,7 +11,7 @@ https://github.com/Pippolo84
 
 * Before starting
 
-- check you Go environment compiling and running this code
+- check your Go environment compiling and running the "Hello World"
     package main
 
     import "fmt"
@@ -20,17 +20,10 @@ https://github.com/Pippolo84
         fmt.Println("Hello world!")
     }
 
-
 - download the workshop material
     git clone git@github.com:Pippolo84/performance-and-scalability-of-go-applications.git
 
 - peeking inside the solution folders is not allowed ;-)
-
-* Introduction: the Isogram exercise
-
-Follow the instructions inside
-    
-    01-introduction/INSTRUCTIONS.md
 
 * Big O notation in a nutshell
 
@@ -50,16 +43,21 @@ Follow the instructions inside
 
 * Time complexity examples
 
-- _O(1)_ constant time
-    Look-up table
-- _O(logn)_ logarithmic time
-    Binary search
-- _O(n)_ linear time
-    Linear search
-- _O(nlogn)_ linearithmic time
-    Merge sort
-- _O(n^2)_ quadratic time
-    Bubble sort
+- _O(1)_ constant time (look-up table)
+- _O(logn)_ logarithmic time (binary search)
+- _O(n)_ linear time (linear search)
+- _O(nlogn)_ linearithmic time (quick sort)
+- _O(n^2)_ quadratic time (bubble sort)
+
+* A taste of performance analysis
+
+Try to complete the Isogram exercise!
+
+Follow the instructions inside
+    
+    01-introduction/INSTRUCTIONS.md
+
+Happy coding!
 
 * Isogram solutions
 
@@ -78,10 +76,10 @@ Follow the instructions inside
 3) Using linear searching
 
     - iterate over the string
-    - for each rune, search for that rune in the remaining part of the string
+    - for each rune, search for it in the remaining part of the string
     - if found, return false, otherwise, return true
 
-*Quick quiz*: can you guess the time complexity of each solution?
+*Quick-quiz*: can you guess the time complexity of each solution?
 
 * Isogram solutions time complexities
 
@@ -97,23 +95,117 @@ Inside the solution folder
     goos: linux
     goarch: amd64
     pkg: performance-and-scalability-of-go-applications/01-introduction/solution
-    BenchmarkIsIsogram/01-map-8               200000              7925 ns/op
-    BenchmarkIsIsogram/02-sorting-8           200000              5427 ns/op
-    BenchmarkIsIsogram/03-linear-search-8            1000000              1339 ns/op
+    BenchmarkIsIsogram/01-map-8               200000              8203 ns/op
+    BenchmarkIsIsogram/02-sorting-8           300000              5534 ns/op
+    BenchmarkIsIsogram/03-linear-search-8            1000000              1382 ns/op
     ...
     PASS
     ok      performance-and-scalability-of-go-applications/01-introduction/solution 6.295s 
 
 Wait... What!?
 
-* Time complexity gotchas
+* Map vs Sort vs Linear Search
 
-Do you remember the constant factor?
+.image img/RuneUniqueAll.svg
 
-* TODO
-grafici
-grafici per data set più grande
-fattore determinante: memory access pattern (soluzione con array di bool)
+For #runes < 256 the linear search outperforms the other implementation
+
+* Map vs Sort
+
+.image img/RuneUniqueMapVsSort.svg
+
+For #runes < 1024 the sort implementation is still faster than the map
+
+* A closer look to the map data type
+
+TODO: map implementation, see:
+- https://dave.cheney.net/2018/05/29/how-the-go-runtime-implements-maps-efficiently-without-generics
+- https://www.ardanlabs.com/blog/2013/12/macro-view-of-map-internals-in-go.html (OLDER!!!)
+
+* A closer look to sort.Sort
+
+from sort.go:
+
+    func quickSort(data Interface, a, b, maxDepth int) {
+        for b-a > 12 { // Use ShellSort for slices <= 12 elements
+            ...
+        }
+        if b-a > 1 {
+            // Do ShellSort pass with gap 6
+            // It could be written in this simplified form cause b-a <= 12
+            for i := a + 6; i < b; i++ {
+                if data.Less(i, i-6) {
+                    data.Swap(i, i-6)
+                }
+            }
+            insertionSort(data, a, b)
+        }
+    }
+
+For small slices, the standard library doesn't even use Quicksort
+
+* A closer look to strings.ContainsRune
+
+from indexbyte_amd64.s:
+
+    sseloop:
+	// Move the next 16-byte chunk of the data into X1.
+	MOVOU	(DI), X1
+	// Compare bytes in X0 to X1.
+	PCMPEQB	X0, X1
+	// Take the top bit of each byte in X1 and put the result in DX.
+	PMOVMSKB X1, DX
+	// Find first set bit, if any.
+	BSFL	DX, DX
+	JNZ	ssesuccess
+	// Advance to next block.
+	ADDQ	$16, DI
+
+Search is done using SIMD instructions
+
+* Can we do even better?
+
+Consider the test cases, we can see that:
+- all runes are in the ASCII set
+- we are only interested in the 26 alphabetical letters
+
+* Array as a map
+
+    func IsIsogram(s string) bool {
+        foundRune := [26]bool{} //'a' to 'z'
+
+        for _, r := range s {
+            if !unicode.IsLetter(r) {
+                continue
+            }
+
+            // convert the rune to lowercase to index foundRune
+            r = unicode.ToLower(r)
+            i := r - 'a'
+
+            if foundRune[i] == true {
+                return false
+            }
+            foundRune[i] = true
+        }
+
+        return true
+    }
+
+* Benchmarks
+
+    BenchmarkIsIsogram/01-map-8               200000              8203 ns/op
+    BenchmarkIsIsogram/02-sorting-8           300000              5534 ns/op
+    BenchmarkIsIsogram/03-linear-search-8            1000000              1382 ns/op
+    BenchmarkIsIsogram/04-bool-array-8               3000000               525 ns/op
+
+* Pitfalls of the time complexity model
+
+Constant factors are important. What are they determined by?
+
+- memory access pattern
+- algorithms implemented in hardware
+- ...
 
 * Take home message
 
@@ -122,9 +214,9 @@ Time complexity with Big O notation can be misleading if applied blindly
 If we want to get the most ouf of our applications we need to:
 
 - understand our hardware, the Go runtime and their interactions
-- learn to profile and benchmark our application
+- learn to profile and benchmark our application with meaningful dataset
 
-DOn't worry: the rest of this workshop is dedicated to that! ;-)
+That's why the rest of this workshop is dedicated to that! ;-)
 
 * Roadmap
 
