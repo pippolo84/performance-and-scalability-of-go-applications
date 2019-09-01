@@ -15,7 +15,7 @@ The word "isograms", however, is not an isogram, because the s repeats.
 
 #### Complete the exercise
 
-Complete the function `IsIsogram` inside `isogram.go`. Do not change any other file. When you're done, try running the tests.
+Complete the function `IsIsogram` inside `isogram/isogram.go`. Do not change any other file. When you're done, try running the tests.
 
 #### Running the tests
 
