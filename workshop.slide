@@ -118,9 +118,42 @@ For #runes < 1024 the sort implementation is still faster than the map
 
 * A closer look to the map data type
 
-TODO: map implementation, see:
-- https://dave.cheney.net/2018/05/29/how-the-go-runtime-implements-maps-efficiently-without-generics
-- https://www.ardanlabs.com/blog/2013/12/macro-view-of-map-internals-in-go.html (OLDER!!!)
+There are no generics in Go 1.13
+
+The compiler rewrites lookups, insertion and removal into functions calls to the runtime package
+
+    v := found[r]
+    func mapaccess1_*(t *maptype, h *hmap, key uint32) unsafe.Pointer
+
+    found[r] = true
+    func mapassign_*(t *maptype, h *hmap, key uint32) unsafe.Pointer
+
+- hmap implements the generic map logic
+- maptype is unique to the specific map type declared and contains key and value type descriptors
+
+* A closer look to the map data type
+
+    go tool compile -S isogram.go
+
+    0x00df 00223 (isogram.go:18)    MOVL    AX, "".r+40(SP)                 ;; key loaded in AX
+    0x00e3 00227 (isogram.go:19)    LEAQ    type.map[int32]bool(SB), CX     ;; t *maptype loaded in CX
+    0x00ea 00234 (isogram.go:19)    MOVQ    CX, (SP)                        ;; t *maptype on the stack
+    0x00ee 00238 (isogram.go:19)    LEAQ    ""..autotmp_8+112(SP), DX       ;; h *hmap loaded in DX
+    0x00f3 00243 (isogram.go:19)    MOVQ    DX, 8(SP)                       ;; h *hmap on the stack
+    0x00f8 00248 (isogram.go:19)    MOVL    AX, 16(SP)                      ;; key on the stack
+
+    ;; runtime.mapaccess1_fast32(t, h, key)
+    0x00fc 00252 (isogram.go:19)    CALL    runtime.mapaccess1_fast32(SB)
+
+    0x010b 00267 (isogram.go:23)    LEAQ    type.map[int32]bool(SB), AX     ;; t *maptype loaded in CX
+    0x0112 00274 (isogram.go:23)    MOVQ    AX, (SP)                        ;; t *maptype on the stack
+    0x0116 00278 (isogram.go:23)    LEAQ    ""..autotmp_8+112(SP), CX       ;; h *hmap loaded in DX
+    0x011b 00283 (isogram.go:23)    MOVQ    CX, 8(SP)                       ;; h *hmap on the stack
+    0x0120 00288 (isogram.go:23)    MOVL    "".r+40(SP), DX                 ;; key loaded in DX
+    0x0124 00292 (isogram.go:23)    MOVL    DX, 16(SP)                      ;; key on the stack
+
+    ;; runtime.mapassign_fast32(t, h, k)
+    0x0128 00296 (isogram.go:23)    CALL    runtime.mapassign_fast32(SB)
 
 * A closer look to sort.Sort
 
@@ -142,7 +175,7 @@ from sort.go:
         }
     }
 
-For small slices, the standard library doesn't even use Quicksort
+For small slices, the standard library doesn't even use Quicksort!
 
 * A closer look to strings.ContainsRune
 
@@ -213,7 +246,7 @@ Time complexity with Big O notation can be misleading if applied blindly
 
 If we want to get the most ouf of our applications we need to:
 
-- understand our hardware, the Go runtime and their interactions
+- understand our hardware, the Go runtime internals and their interactions
 - learn to profile and benchmark our application with meaningful dataset
 
 That's why the rest of this workshop is dedicated to that! ;-)
