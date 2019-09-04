@@ -243,7 +243,7 @@ Constant factors are important. What are they determined by?
 
 * Take home message
 
-Time complexity with Big O notation can be misleading if applied blindly
+Time complexity with Big O notation tells us just a part of the story!
 
 If we want to get the most ouf of our applications we need to:
 
