@@ -85,6 +85,5 @@ func BenchmarkIsIsogram(b *testing.B) {
 		for _, c := range testCases {
 			IsIsogram(c.input)
 		}
-
 	}
 }
