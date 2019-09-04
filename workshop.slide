@@ -401,6 +401,98 @@ Example
 
 * Benchmarking allocations
 
+* Benchmarking pitfalls
+
+Consider the following benchmark
+
+    func NaturalNumbersSum(n int) int {
+        return n * (n + 1) / 2
+    }
+
+    func BenchmarkNaturalNumbersSum(b *testing.B) {
+        for i := 0; i < b.N; i++ {
+            NaturalNumbersSum(i)
+        }
+    }
+
+And its results
+
+    ...
+    BenchmarkNaturalNumbersSum-8    2000000000               0.30 ns/op
+    PASS
+
+0.30 ns/op is the time of a single clock cycle...
+
+* Benchmarking pitfalls
+
+Using
+
+    go test -v -run=^$ -bench=. -gcflags="-m"
+
+We can see that the call to NaturalNumbersSum is inlined by the compiler...
+
+    ...
+    ./gauss.go:3:6: can inline NaturalNumbersSum
+    ./gauss_test.go:7:20: inlining call to NaturalNumbersSum
+    ...
+
+* Benchmarking pitfalls
+
+And since the body of the function has no side effects, it is optimized away by the CPU!
+
+    "".BenchmarkNaturalNumbersSum STEXT nosplit size=23 args=0x8 locals=0x0
+        0x0000 00000 (gauss_test.go:5)       TEXT    "".BenchmarkNaturalNumbersSum(SB), NOSPLIT|ABIInternal, $0-8
+        ...
+        0x0000 00000 (gauss_test.go:6)       MOVQ    "".b+8(SP), AX
+        0x0005 00005 (gauss_test.go:6)       XORL    CX, CX
+        0x0007 00007 (gauss_test.go:6)       JMP     13
+        0x0009 00009 (gauss_test.go:6)       INCQ    CX
+        0x000c 00012 (gauss_test.go:7)       XCHGL   AX, AX
+        0x000d 00013 (gauss_test.go:6)       CMPQ    264(AX), CX
+        0x0014 00020 (gauss_test.go:6)       JGT     9
+        ...
+        0x0016 00022 (<unknown line number>)    RET
+
+* Fixing the benchmark
+
+Force the body of the for loop to produce effects visible outside the loop itself
+
+    var result int
+
+    func BenchmarkNaturalNumbersSum(b *testing.B) {
+        var r int
+        for i := 0; i < b.N; i++ {
+            r = NaturalNumbersSum(i)
+        }
+        result = r
+    }
+
+inspired by [[https://github.com/golang/go/issues/14813#issue-140603392][issue #14183]]
+
+* Fixing the benchmark
+
+    "".BenchmarkNaturalNumbersSum STEXT nosplit size=54 args=0x8 locals=0x0
+            0x0000 00000 (gauss_test.go:7)       TEXT    "".BenchmarkNaturalNumbersSum(SB), NOSPLIT|ABIIn
+    ternal, $0-8
+        ...
+            0x0000 00000 (gauss_test.go:10)      MOVQ    "".b+8(SP), AX
+            0x0005 00005 (gauss_test.go:10)      XORL    CX, CX
+            0x0007 00007 (gauss_test.go:10)      XORL    DX, DX
+            0x0009 00009 (gauss_test.go:10)      JMP     37
+            0x000b 00011 (gauss_test.go:11)      XCHGL   AX, AX
+            0x000c 00012 (gauss.go:4)    LEAQ    1(CX), BX
+            0x0010 00016 (gauss.go:4)    IMULQ   BX, CX
+            0x0014 00020 (gauss.go:4)    MOVQ    CX, SI
+            0x0017 00023 (gauss.go:4)    SHRQ    $63, CX
+            0x001b 00027 (gauss.go:4)    LEAQ    (CX)(SI*1), DX
+            0x001f 00031 (gauss.go:4)    SARQ    $1, DX
+            0x0022 00034 (gauss_test.go:10)      MOVQ    BX, CX
+            0x0025 00037 (gauss_test.go:10)      CMPQ    264(AX), CX
+            0x002c 00044 (gauss_test.go:10)      JGT     11
+        ...
+            0x002e 00046 (gauss_test.go:14)      MOVQ    DX, "".result(SB)
+            0x0035 00053 (gauss_test.go:15)      RET
+
 * Insert and Remove exercise
 
 Follow the instructions inside
