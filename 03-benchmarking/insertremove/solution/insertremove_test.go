@@ -5,12 +5,21 @@ import (
 	"testing"
 )
 
-type implementation struct {
+var implementations = []struct {
 	descr string
 	obj   InserterRemover
+}{
+	{
+		descr: "slice",
+		obj:   NewSliceImpl(),
+	},
+	{
+		descr: "list",
+		obj:   NewListImpl(),
+	},
 }
 
-func TestInsertRemoveSlice(t *testing.T) {
+func TestInsertRemove(t *testing.T) {
 	testCases := []struct {
 		descr       string
 		input       int
@@ -35,17 +44,6 @@ func TestInsertRemoveSlice(t *testing.T) {
 			descr:       "large number of elements",
 			input:       25000,
 			expectError: false,
-		},
-	}
-
-	implementations := []implementation{
-		{
-			descr: "slice",
-			obj:   NewSliceImpl(),
-		},
-		{
-			descr: "list",
-			obj:   NewListImpl(),
 		},
 	}
 
