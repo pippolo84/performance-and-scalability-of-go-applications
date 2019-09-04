@@ -1,6 +1,7 @@
 package insertremove
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 )
@@ -85,6 +86,21 @@ func TestInsertRemove(t *testing.T) {
 						if len(values) != 0 {
 							t.Fatalf("after Remove, len(container) = %d\texpected %d", len(values), 0)
 						}
+					}
+				})
+			}
+		})
+	}
+}
+
+func Benchmark(b *testing.B) {
+	for _, impl := range implementations {
+		b.Run(impl.descr, func(b *testing.B) {
+			for _, n := range []int{0, 8, 16, 32, 64, 256, 1024, 4096, 16384, 32768} {
+				b.Run(fmt.Sprintf("%d", n), func(b *testing.B) {
+					for i := 0; i < b.N; i++ {
+						impl.obj.Insert(n)
+						impl.obj.Remove()
 					}
 				})
 			}
