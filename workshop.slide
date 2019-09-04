@@ -24,6 +24,8 @@ https://github.com/Pippolo84
 
 - peeking inside the solution folders is not allowed ;-)
 
+* Introduction
+
 * Big O notation in a nutshell
 
 Adapted from [[https://en.wikipedia.org/wiki/Big_O_notation][Wikipedia]]
@@ -258,6 +260,10 @@ That's why the rest of this workshop is dedicated to that! ;-)
 - The Go scheduler
 - The Go memory allocator & garbage collector
 
+* Modern CPU architecture
+
+* Benchmarking
+
 * A stable environment
 
 When benchmarking, try to make your environment as stable as possible:
@@ -395,6 +401,31 @@ Example
 
 * Benchmarking allocations
 
-* Exercises
+* Insert and Remove exercise
 
-two exercises from https://www.youtube.com/watch?v=jEG4Qyo_4Bc
+Follow the instructions inside
+
+    03-benchmarking/INSTRUCTIONS.md
+
+Happy coding!
+
+* Insert and Remove exercise solution
+
+.image img/InsertRemove.svg
+
+Predictability of memory access makes slice the winner!
+
+* Insert and Remove exercise solution
+
+Useful options:
+
+- -count
+- -benchtime
+
+to check benchmark stability and get more meaningful results for longer execution test cases
+
+* Profiling
+
+* The Go scheduler
+
+* The Go memory allocator & garbage collector
