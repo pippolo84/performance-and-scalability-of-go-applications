@@ -8,7 +8,6 @@ fabio.falzoi84@gmail.com
 https://github.com/Pippolo84
 @Pippolo84
 
-
 * Before starting
 
 - check your Go environment compiling and running the "Hello World"
@@ -27,7 +26,7 @@ https://github.com/Pippolo84
 
 * Big O notation in a nutshell
 
-.link https://en.wikipedia.org/wiki/Big_O_notation Definition
+Adapted from [[https://en.wikipedia.org/wiki/Big_O_notation][Wikipedia]]
 
     Let f be a real valued function and g a real valued function. One writes:
 
@@ -258,3 +257,144 @@ That's why the rest of this workshop is dedicated to that! ;-)
 - Profiling
 - The Go scheduler
 - The Go memory allocator & garbage collector
+
+* A stable environment
+
+When benchmarking, try to make your environment as stable as possible:
+
+- avoid shared hardware, virtual machines and shared cloud hosting
+- close all resource hungry applications so that CPU utilization is lower than ~5%
+
+Specifically
+
+- do not browse the Web
+- do not check emails
+- do not use your editor to write stuff
+
+and above all...
+
+* A stable environment
+
+- resist the urge to answer on Slack using Giphy
+
+.image https://media.giphy.com/media/n2IekUAIvjz2w/giphy.gif
+
+*Quick-quiz*: try to guess the increase in CPU utilization due to this GIF, then measure it with top
+
+* Advanced HW tweaking to improve stability
+
+- disable Turbo Boost
+
+    # Intel
+    echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
+    # AMD
+    echo 0 > /sys/devices/system/cpu/cpufreq/boost
+
+- Set scaling_governor to "performance"
+
+    echo performance > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+    echo performance > /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor
+    echo performance > /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor
+    ...
+
+- Set process priority
+
+    nice -n 10 ./isogram.bench -test.run=^$ -test.bench=. -test.benchmem
+
+More on this [[https://easyperf.net/blog/2019/08/02/Perf-measurement-environment-on-Linux][here]]
+
+* Expensive HW tweaking to improve stability
+
+Buy dedicated HW to run your benchmarks
+
+* Benchmarking for humans
+
+- create a test executable to do a before/after comparison
+- use [[https://godoc.org/golang.org/x/perf/cmd/benchstat][benchstat]]
+
+more on this later!
+
+* Go benchmark tooling
+
+Very similar to testing
+
+    func BenchmarkIsIsogram(b *testing.B) {
+        for i := 0; i < b.N; i++ {
+            IsIsogram("input test string")
+        }
+    }
+
+You can execute them with:
+
+    go test -bench=.
+
+This will first run the tests, and then the benchmarks
+
+* Go benchmarking output
+
+Sample output produced
+
+    goos: linux
+    goarch: amd64
+    pkg: path/to/package
+    BenchmarkName-8  100000  1859 ns/op  57 B/op
+    PASS
+    ok  path/to/package   2.042s
+
+A line starting with the BenchmarkName followed by the number of cores (GOMAXPROCS) available, then the number of times (100000) the benchmark was run.
+
+The next two numbers indicate:
+
+- the time it took to execute the benchmark, in ns/op (nanoseconds per operation)
+- the memory usage, in B/op (bytes of memory allocated per operation)
+
+lower is better.
+
+* How benchmarks work
+
+Each benchmark function is repeatedly called with different value for b.N, the number of iterations the benchmark should run for.
+
+b.N starts at 1, if the benchmark function completes in less than 1 second, then b.N is increased and the benchmark function is called again.
+
+b.N increases in a sequence adapted by the benchmark framework.
+
+    BenchmarkIsIsogram/01-map-8               200000              8203 ns/op
+    BenchmarkIsIsogram/02-sorting-8           300000              5534 ns/op
+    BenchmarkIsIsogram/03-linear-search-8            1000000              1382 ns/op
+    BenchmarkIsIsogram/04-bool-array-8               3000000               525 ns/op
+
+*Quick-quiz*: why each benchmark run for different number of iterations (200000, 300000, 1000000 and 3000000)?
+
+* Benchmark option -cpu
+
+Change the value of CPUs used
+
+    -cpu
+
+Example
+
+    go test -v -run=^$ -bench=. -cpu=1,4,8
+
+    goos: linux
+    goarch: amd64
+    pkg: performance-and-scalability-of-go-applications/01-introduction/isogram/solution
+    BenchmarkIsIsogram/01-map           	  200000	      6886 ns/op
+    BenchmarkIsIsogram/01-map-4         	  200000	      7246 ns/op
+    BenchmarkIsIsogram/01-map-8         	  200000	      7951 ns/op
+    ...
+    PASS
+    ok  	performance-and-scalability-of-go-applications/01-introduction/isogram/solution	19.518s
+
+* Benchmark option -benchtime
+
+* Benchmark option -count
+
+* benchstat
+
+* Avoid benchmark setup cost
+
+* Benchmarking allocations
+
+* Exercises
+
+two exercises from https://www.youtube.com/watch?v=jEG4Qyo_4Bc
