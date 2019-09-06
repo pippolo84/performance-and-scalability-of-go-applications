@@ -393,9 +393,35 @@ Example
 
 * Benchmark option -benchtime
 
+By default, Go will run the benchmark, increasing b.N, until it takes more than 1s to complete.
+
+You can change this behaviour using -benchtime option
+
+Examples
+
+- run the benchmark until it hits the 10s threshold
+
+    go test -v -run=^$ -bench=. -benchtime=10s
+
+- make exactly 100 iterations
+
+    go test -v -run=^$ -bench=. -benchtime=100x
+
 * Benchmark option -count
 
+By default, each benchmark is repeated just once.
+
+You can change this behaviour using -count option
+
+Example
+
+- run each benchmark twice
+
+    go test -v -run=^$ -bench=. -count=2
+
 * benchstat
+
+
 
 * Avoid benchmark setup cost
 
