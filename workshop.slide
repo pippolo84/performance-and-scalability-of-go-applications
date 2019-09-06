@@ -362,7 +362,7 @@ Each benchmark function is repeatedly called with different value for b.N, the n
 
 b.N starts at 1, if the benchmark function completes in less than 1 second, then b.N is increased and the benchmark function is called again.
 
-b.N increases in a sequence adapted by the benchmark framework.
+b.N increases in a sequence adapted by the benchmark framework, [[https://github.com/golang/go/commit/03a79e94ac72f2425a6da0b399dc2f660cf295b6][up to 1.000.000]]
 
     BenchmarkIsIsogram/01-map-8               200000              8203 ns/op
     BenchmarkIsIsogram/02-sorting-8           300000              5534 ns/op
@@ -421,11 +421,79 @@ Example
 
 * benchstat
 
+[[https://godoc.org/golang.org/x/perf/cmd/benchstat][benchstat]] is a tool to compute statitics about benchmarks
+
+To download it
+
+    go get -u -v golang.org/x/perf/cmd/benchstat
 
 
-* Avoid benchmark setup cost
+How it works
+
+_For_each_different_benchmark_listed_in_an_input_file,_benchstat_computes_the_mean,_minimum,_and_maximum_run_time,_after_removing_outliers_
+
+It greatly helps to understand the statistical significance of your benchmarks
+
+* benchstat on a single input file
+
+If invoked on a single input file, benchstat prints the per-benchmark statistics for that file
+
+    $ go test -v -run=^$ -bench=. -count=10 > isogram.txt
+    $ benchstat isogram.txt
+    name                          time/op
+    IsIsogram/01-map-8            7.60µs ± 3%
+    IsIsogram/02-sorting-8        5.34µs ± 1%
+    IsIsogram/03-linear-search-8  1.31µs ± 2%
+    IsIsogram/04-bool-array-8      529ns ± 0%
+
+It computes the mean value and gives the variation across the samples
+
+*Lower* variation means *better* stability!
+
+* benchstat on multiple input files
+
+benchstat is very useful to analyze the impact of your changes
+
+    $ go test -v -run=^$ -bench=. -count=10 > old.txt
+
+    // changes to the code
+
+    $ go test -v -run=^$ -bench=. -count=10 > new.txt
+    $ benchstat old.txt new.txt
+    name                          old time/op  new time/op  delta
+    IsIsogram/01-map-8            7.52µs ± 2%  7.40µs ± 5%    ~     (p=0.105 n=10+10)
+    IsIsogram/02-sorting-8        5.23µs ± 3%  5.13µs ± 3%  -1.95%  (p=0.016 n=10+10)
+    IsIsogram/03-linear-search-8  1.32µs ± 1%  1.32µs ± 1%    ~     (p=0.669 n=10+10)
+    IsIsogram/04-bool-array-8      530ns ± 0%   533ns ± 0%  +0.71%  (p=0.000 n=9+10)
+
+A ~ means that the difference between the benchmarks is not statistically significant
 
 * Benchmarking allocations
+
+Using the -benchmem option, go will report the heap allocations per operation
+
+    $ go test -v -run=^$ -bench=. -benchmem
+    goos: linux
+    goarch: amd64
+    pkg: performance-and-scalability-of-go-applications/01-introduction/isogram/solution
+    BenchmarkIsIsogram/01-map-8               200000              7458 ns/op            1273 B/op         11 allocs/op
+    BenchmarkIsIsogram/02-sorting-8           300000              5266 ns/op             928 B/op         25 allocs/op
+    BenchmarkIsIsogram/03-linear-search-8            1000000              1315 ns/op              48 B/op          3 allocs/op
+    BenchmarkIsIsogram/04-bool-array-8               3000000               532 ns/op               0 B/op          0 allocs/op
+    PASS
+    ok      performance-and-scalability-of-go-applications/01-introduction/isogram/solution 6.692s
+
+Note how less allocations means better performance... More on this later!
+
+* Creating a benchmark "gold standard" file
+
+Instead of saving the textual output of a benchmark run, you can save a binary to reproduce the benchmark
+
+    $ go test -c -o isogram.bench
+
+This way you will be able to benchmark your code (with whatever set of options you like) for later comparison
+
+    $ ./isogram.bench -test.run=^$ -test.bench=. -test.benchmem
 
 * Benchmarking pitfalls
 
@@ -535,12 +603,24 @@ Predictability of memory access makes slice the winner!
 
 * Insert and Remove exercise solution
 
-Useful options:
+Useful things:
 
+- benchstat
 - -count
 - -benchtime
 
 to check benchmark stability and get more meaningful results for longer execution test cases
+
+* Take home message(s)
+
+- don't store data unnecessarily (more on that later)
+- keep data compact (again... more on that later)
+- access memory in a predictable manner
+- don't make statements about performance without measurements
+
+_"I_emphasize_the_importance_of_cache_effects._In_my_experience,_all_but_true_experts_tend_to_forget_those_when_algorithms_are_discussed."_
+
+Bjarne Stroustrup - from [[https://isocpp.org/blog/2014/06/stroustrup-lists][Are lists evil?]]
 
 * Profiling
 
