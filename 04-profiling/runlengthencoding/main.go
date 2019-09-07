@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"performance-and-scalability-of-go-applications/04-profiling/runlengthencoding/rle"
+	"runtime/pprof"
 )
 
 func encodeFile(f string) error {
@@ -41,7 +44,7 @@ func decodeFile(f string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile("decoded.rle", decoded.Bytes(), 0644)
+	err = ioutil.WriteFile("decoded.out", decoded.Bytes(), 0644)
 	if err != nil {
 		return err
 	}
@@ -50,23 +53,36 @@ func decodeFile(f string) error {
 }
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Printf("syntax: %s e|d file\n", os.Args[0])
+	cpuProfile := flag.String("cpuprofile", "", "write cpu profile to file")
+	flag.Parse()
+
+	if *cpuProfile != "" {
+		f, err := os.Create(*cpuProfile)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	if len(flag.Args()) < 2 {
+		fmt.Println("missing arguments")
 		return
 	}
 
-	switch os.Args[1] {
+	switch flag.Args()[0] {
 	case "e":
-		err := encodeFile(os.Args[2])
+		err := encodeFile(flag.Args()[1])
 		if err != nil {
 			panic(err)
 		}
 	case "d":
-		err := decodeFile(os.Args[2])
+		err := decodeFile(flag.Args()[1])
 		if err != nil {
 			panic(err)
 		}
 	default:
-		fmt.Printf("unknown option %s\n", os.Args[1])
+		fmt.Printf("unknown option %s\n", flag.Args()[0])
 	}
 }
