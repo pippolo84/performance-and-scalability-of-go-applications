@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -38,13 +37,12 @@ func decodeFile(f string) error {
 	}
 	defer in.Close()
 
-	var decoded bytes.Buffer
-	err = rle.Decode(in, &decoded)
+	decoded, err := rle.Decode(in)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile("decoded.out", decoded.Bytes(), 0644)
+	err = ioutil.WriteFile("decoded.out", decoded, 0644)
 	if err != nil {
 		return err
 	}
