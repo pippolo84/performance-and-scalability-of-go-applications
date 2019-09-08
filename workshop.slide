@@ -624,6 +624,176 @@ Bjarne Stroustrup - from [[https://isocpp.org/blog/2014/06/stroustrup-lists][Are
 
 * Profiling
 
+* Benchmarking vs Profiling
+
+_Benchmarking_ allows us to inspect the performance of a specific piece of code.
+
+_Profiling_ gives us a way to understand where our application is spending the most of the time and using the majority of resources.
+
+* What is a profile?
+
+_A_Profile_is_a_collection_of_stack_traces_showing_the_call_sequences_that_led_to_instances_of_a_particular_event,_such_as_allocation._
+
+* Types os profiles
+
+- CPU
+- Heap
+- Block
+- Mutex
+
+In this workshop we'll focus on CPU profiles and Heap profiles
+
+* How the CPU profiler works
+
+An handler to the `SIGPROF` signal is registered and a timer is started. The timer will count only when the program is actively consuming CPU cycles.
+Every 10ms, the signal `SIGPROF` is delivered, and the handler unwinds the stack, registering the stack trace.
+
+* How the Heap profiler works
+
+These profiles don't require the delivery of any signals, the runtime itself will collect samples while allocating memory on the heap.
+Not all allocations are sampled, if you like to see every one of them, you should set
+
+    runtime.MemProfileRate
+
+to 1 as early as possibile in your program.
+
+* Profiling benchmarks
+
+You can generate profiles directly when launching benchmarks
+
+    go test -run=^$ -bench=. -cpuprofile cpu.prof
+    go test -run=^$ -bench=. -memprofile mem.prof
+
+* Profiling web servers
+
+For web servers, you can use the `net/http/pprof` package to expose an endpoint where you can collect various profiles type
+
+1) Import `pprof` package with a blank import
+
+    import _ net/http/pprof
+
+2) If your application is not already running an HTTP server, then start one
+
+    http.ListenAndServe(":8080", nil)
+
+You can find an example in
+
+    04-profiling/profilingexamples/server
+
+* Profiling whole programs
+
+To profile a whole program you can use the `runtime/pprof` package.
+
+Just add this lines at the start of your `main` function
+
+    cpuProfile := flag.String("cpuprofile", "", "write cpu profile to file")
+    flag.Parse()
+
+    if *cpuProfile != "" {
+        f, err := os.Create(*cpuProfile)
+        if err != nil {
+            log.Fatal(err)
+        }
+        pprof.StartCPUProfile(f)
+        defer pprof.StopCPUProfile()
+    }
+
+Then launch your program with the flag
+
+    -cpuprofile cpu.prof
+
+To save a CPU profile inside `cpu.prof` file
+
+* pprof live demo
+
+To analyse the profile you generated, you can use the Go `pprof` tool
+
+     go tool pprof <profile>
+
+It offers both a textual and a web interface, let's explore both with a live demo!
+
+* Run Length Encoding exercise
+
+Follow the instructions inside
+
+    04-profiling/INSTRUCTIONS.md
+
+Happy coding!
+
+* Run Length Encoding exercise solution
+
+The program opens an input file, read all its content one byte at a time to encode or decode it, then write the results in an output file.
+
+* Run Length Encoding exercise solution
+
+As a reference, let's compare runlengthencoding with the gzip/gunzip utilities.
+
+    $ time gzip divina-commedia.txt
+    real    0m0,056s
+    user    0m0,052s
+    sys     0m0,004s
+
+    $ time gunzip divina-commedia.txt.gz
+    real    0m0,043s
+    user    0m0,006s
+    sys     0m0,006s
+
+    $ time ./runlengthencoding e divina-commedia.txt
+    real    0m0,519s
+    user    0m0,179s
+    sys     0m0,341s
+
+    $ time ./runlengthencoding d encoded.rle
+    real    0m0,985s
+    user    0m0,524s
+    sys     0m0,463s
+
+Lot of room for improvement!
+
+* Run Length Encoding exercise solution
+
+The -cpuprofile options gives us the ability to generate a CPU profile and store it in a file:
+
+    ./runlengthencoding -cpuprofile cpu.prof e divina-commedia.txt
+
+Now, we can inspect this profile with:
+
+    go tool pprof -http=:8080 cpu.prof
+
+What can you see from this profile?
+
+* Run Length Encoding exercise solution
+
+.image img/RlePprofCpu.png _ 1024
+
+* Run Length Encoding exercise solution
+
+We are spending the majority of the time doing syscall. Specifically, the read syscall.
+
+A read syscall for very few bytes in memory can cost us [[http://arkanis.de/weblog/2017-01-05-measurements-of-system-call-performance-and-overhead][from ~50 to ~100ns]] (and Meltdown/Spectre mitigation patches are [[https://www.zdnet.com/article/linux-meltdown-patch-up-to-800-percent-cpu-overhead-netflix-tests-show/][making it worse]])
+
+Since we are passing a 1-byte buffer, we are essentially doing unbufferead read: the total number of read syscalls equals the number of input stream bytes.
+
+* Run Length Encoding exercise solution
+
+To solve the problem, we can simply buffer our read operations using [[https://golang.org/pkg/bufio/#NewReader][bufio.NewReader]]
+
+    $ time ./solution e divina-commedia.txt
+    real    0m0,017s
+    user    0m0,018s
+    sys     0m0,000s
+
+    $ time ./solution d encoded.rle
+    real    0m0,034s
+    user    0m0,036s
+    sys     0m0,000s
+
+Here, you should note how the sys time has dropped down!
+
+But...
+
+There is much more room for improvement in this code... We'll talk about it later!
+
 * The Go scheduler
 
 * The Go memory allocator & garbage collector
