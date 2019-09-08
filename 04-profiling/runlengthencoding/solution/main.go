@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"performance-and-scalability-of-go-applications/04-profiling/runlengthencoding/solution/rle"
-	"runtime"
 	"runtime/pprof"
 )
 
@@ -39,13 +37,12 @@ func decodeFile(f string) error {
 	}
 	defer in.Close()
 
-	var decoded bytes.Buffer
-	err = rle.Decode(in, &decoded)
+	decoded, err := rle.Decode(in)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile("decoded.out", decoded.Bytes(), 0644)
+	err = ioutil.WriteFile("decoded.out", decoded, 0644)
 	if err != nil {
 		return err
 	}
@@ -55,7 +52,6 @@ func decodeFile(f string) error {
 
 func main() {
 	cpuProfile := flag.String("cpuprofile", "", "write cpu profile to file")
-	memProfile := flag.String("memprofile", "", "write memory profile to file")
 	flag.Parse()
 
 	if *cpuProfile != "" {
@@ -66,19 +62,6 @@ func main() {
 
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
-	}
-
-	if *memProfile != "" {
-		runtime.MemProfileRate = 1
-		memfile, err := os.Create(*memProfile)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		defer func() {
-			pprof.Lookup("allocs").WriteTo(memfile, 0)
-			memfile.Close()
-		}()
 	}
 
 	if len(flag.Args()) < 2 {

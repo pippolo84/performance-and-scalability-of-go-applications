@@ -72,15 +72,13 @@ func TestRle(t *testing.T) {
 				t.Fatalf("Encode(...) failed with error %v", err)
 			}
 
-			var decoded bytes.Buffer
-			err = Decode(bytes.NewReader(encoded), &decoded)
+			decoded, err := Decode(bytes.NewReader(encoded))
 			if err != nil {
 				t.Fatalf("Decode(...) failed with error %v", err)
 			}
 
-			res := decoded.Bytes()
-			if bytes.Compare(tc.seq, res) != 0 {
-				t.Fatalf("Decode(Encode(%v)) = %v", tc.seq, res)
+			if bytes.Compare(tc.seq, decoded) != 0 {
+				t.Fatalf("Decode(Encode(%v)) = %v", tc.seq, decoded)
 			}
 		})
 	}

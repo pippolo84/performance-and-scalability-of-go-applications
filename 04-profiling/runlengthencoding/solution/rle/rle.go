@@ -69,9 +69,11 @@ func Encode(r io.Reader) ([]byte, error) {
 	return encoded, nil
 }
 
-// Decode writes the RLE-encoded input stream r into w
-// Returns an error if something goes wrong
-func Decode(r io.Reader, w io.Writer) error {
+// Decode takes the RLE-encoded input stream and decodes it returning data in a slice
+// or an error if something goes wrong
+func Decode(r io.Reader) ([]byte, error) {
+	var decoded []byte
+
 	b := bufio.NewReader(r)
 
 	for {
@@ -90,7 +92,7 @@ func Decode(r io.Reader, w io.Writer) error {
 
 		// error while reading
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		run = buf[0]
@@ -100,21 +102,16 @@ func Decode(r io.Reader, w io.Writer) error {
 
 		// error while reading (end of stream here is an error, too)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		sym = buf[0]
 
-		// write the symbol for run times
+		// repeat the symbol for run times
 		for i := 0; i < int(run); i++ {
-			_, err := w.Write([]byte{sym})
-
-			// error while writing
-			if err != nil {
-				return err
-			}
+			decoded = append(decoded, sym)
 		}
 	}
 
-	return nil
+	return decoded, nil
 }
