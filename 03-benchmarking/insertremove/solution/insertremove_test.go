@@ -20,34 +20,34 @@ var implementations = []struct {
 	},
 }
 
-func TestInsertRemove(t *testing.T) {
-	testCases := []struct {
-		descr       string
-		input       int
-		expectError bool
-	}{
-		{
-			descr:       "negative value",
-			input:       -5,
-			expectError: true,
-		},
-		{
-			descr:       "single element",
-			input:       1,
-			expectError: false,
-		},
-		{
-			descr:       "small number of elements",
-			input:       10,
-			expectError: false,
-		},
-		{
-			descr:       "large number of elements",
-			input:       25000,
-			expectError: false,
-		},
-	}
+var testCases = []struct {
+	descr       string
+	input       int
+	expectError bool
+}{
+	{
+		descr:       "negative value",
+		input:       -5,
+		expectError: true,
+	},
+	{
+		descr:       "single element",
+		input:       1,
+		expectError: false,
+	},
+	{
+		descr:       "small number of elements",
+		input:       10,
+		expectError: false,
+	},
+	{
+		descr:       "large number of elements",
+		input:       25000,
+		expectError: false,
+	},
+}
 
+func TestInsertRemove(t *testing.T) {
 	for _, impl := range implementations {
 		t.Run(impl.descr, func(t *testing.T) {
 			for _, tc := range testCases {
