@@ -80,7 +80,7 @@ Happy coding!
     - for each rune, search for it in the remaining part of the string
     - if found, return false, otherwise, return true
 
-*Quick-quiz*: can you guess the time complexity of each solution?
+*Quick*quiz*: can you guess the time complexity of each solution?
 
 * Isogram solutions time complexities
 
@@ -285,7 +285,7 @@ and above all...
 
 .image https://media.giphy.com/media/n2IekUAIvjz2w/giphy.gif
 
-*Quick-quiz*: try to guess the increase in CPU utilization due to this GIF, then measure it with top
+*Quick*quiz*: try to guess the increase in CPU utilization due to this GIF, then measure it with top
 
 * Advanced HW tweaking to improve stability
 
@@ -369,7 +369,7 @@ b.N increases in a sequence adapted by the benchmark framework, [[https://github
     BenchmarkIsIsogram/03-linear-search-8            1000000              1382 ns/op
     BenchmarkIsIsogram/04-bool-array-8               3000000               525 ns/op
 
-*Quick-quiz*: why each benchmark run for different number of iterations (200000, 300000, 1000000 and 3000000)?
+*Quick*quiz*: why each benchmark run for different number of iterations (200000, 300000, 1000000 and 3000000)?
 
 * Benchmark option -cpu
 
@@ -795,5 +795,209 @@ But...
 There is much more room for improvement in this code... We'll talk about it later!
 
 * The Go scheduler
+
+* Requirements & constraints
+
+- lightweight (up to 1 million goroutines per process)
+- parallel and scalable
+- simple (minimal API with just a single keyword)
+
+    go func() {
+        // ...
+    }()
+
+- efficient handling of IO calls and syscalls
+- one goroutine per connection model, without callbacks
+
+* Why a new scheduler?
+
+- OS thread context switch latency: from ~1500 to ~2000ns
+- Goroutines context switch latency: from ~150 to ~200ns
+
+Tested on my laptop, using Linux 4.19 and Go 1.13
+
+More info about the benchmarks [[https://eli.thegreenplace.net/2018/measuring-context-switching-and-memory-overheads-for-linux-threads][here]]
+
+Considering a medium frequency of 3 GHz CPU, and an _Istructions_Per_Cycle_ of ~4, we can execute ~12 instructions per ns
+
+- OS thread context switch cost ranges from ~18000 to ~24000 instructions
+- Goroutines context switch cost ranges from ~1800 to ~2400 instructions
+
+A ten times improvement!
+
+* M:P:N scheduler
+
+Based on a M:N threading models, where we *multiplex* N goroutines onto M OS threads
+
+- *M* stands for _machine_ and represents the OS thread
+- *P* stands for _processor_ and is an execution context for Go code
+- *G* stands for _goroutine_
+
+*P* holds the list of runnable goroutines and other Go execution contexts caches
+
+*G* holds the Instruction Pointer and the goroutine stack
+
+*To*execute*a*G,*a*M*needs*to*hold*a*P*
+
+* Scheduler steady state
+
+#TODO: change picture
+.image img/SchedulerSteadyState.png 450 _
+
+At startup, the Go runtime creates *GOMAXPROCS* Ps, where *GOMAXPROCS* is set to the number of available cores
+
+* Cooperative scheduling
+
+Each G is assigned a time slice of 10ms, when it is exhausted, the G is put in the global runqueue to ensure *fairness*
+
+Though the use of a time slice, the preemption checks are inserted by the compiler at function calls
+
+Even if the Go scheduler behaves as *preemptive*, it is *cooperative*
+
+* Cooperative scheduling gotcha
+
+*Quick*quiz*: can you guess the output of this?
+
+    package main
+
+    import "fmt"
+    import "time"
+    import "runtime"
+
+    func main() {
+        var x int
+
+        for i := 0; i < runtime.GOMAXPROCS(0); i++ {
+            go func() {
+                for { x++ }
+            }()
+        }
+
+        time.Sleep(time.Second)
+        fmt.Println(x)
+    }
+
+* Runqueues architecture
+
+- one global runqueue
+- one local runqueue for each P
+
+*Quick*quiz*: why distributed runqueues instead of a single global runqueue?
+
+* Architecture of a local runqueue
+
+.image img/SchedulerLocalRunqueue.png 450 _
+
+*Quick*quiz*: Why using that additional LIFO slot?
+
+* Network I/O
+
+For network I/O, Go uses the asynchronous interface of the underlying OS, like *epoll* on Linux.
+
+Whenever you open or accept a connection in Go, the file descriptor that backs it is set to *non-blocking* mode.
+
+When a G tries to read or write to a connection, if the file descriptor isn't ready, G is scheduled out of the M and enqueued in the *netpoller* queue.
+
+The netpoller is periodically cheched: when a file descriptor is ready, the netpoller returns the G blocked on that file descriptor to be scheduled.
+
+* Take home message
+
+If you think at the above scenario from the point of view of the OS, you'll realize that Go is turning an *I/O*bound* load in a *CPU*bound* one
+
+* The netpoller
+
+.image img/SchedulerNetpoller.png 450 _
+
+* Syscalls
+
+Suppose that G1 wants to call into a blocking syscall. How the runtime will manage this?
+
+- Releases the current P2 from M2 (syscall isn't Go code, it doesn't need a P to execute!)
+- Spawns a new M3, and hand off P3
+- blocks M3 on the syscall
+- using M3, P3 can continue scheduling the Gs in the local runqueue
+- When the OS is done with the syscall, M2 is put to sleep in a thread pool
+- G2 is put on the global runqueue
+
+This is why, even if *GOMAXPROCS* is equal to 1, Go programs will run multiple threads
+
+* Syscalls
+
+.image img/SchedulerSyscall.png 450 _
+
+* Scheduling round decision
+
+    runtime.schedule() {
+        // only 1/61 of the time, check the global runnable queue for a G.
+
+        // if not found, check the local queue
+
+        // if not found call findrunnable
+    }
+
+    runtime.findrunnable() {
+        // if not found, check the global runqueue
+
+        // check the network poller
+
+        // Steal work from other P's.
+    }
+
+Since Go uses distributed runqueues, it needs a mechanism to balance load between Ps *work*stealing*
+
+When a P with a non empty runqueue is found, the current P steals half of it
+
+* Work stealing and M:P:N threading model
+
+*Quick*quiz*: why should we separate P and M entities?
+
+* Scheduling exercises
+
+Follow the instructions inside
+
+    05-scheduler/INSTRUCTIONS.md
+
+Happy coding!
+
+* Gaussian Blur exercise solution
+
+- it is a CPU bound load
+- use the tracer
+- with one goroutine -> low CPU utilization
+- with runtime.NumCPU() goroutines -> best performance
+- increasing the goroutines (one per row, one per pixel) does not affect performance. They start to decrease if Gs are too much (i.e.: one per pixel)
+- if you increase too much the concurrency level, introducing concurrency even in ConvolvePixel (and so dividing furtherly the operation did sequentially), the ratio between time spent in goroutines creation, destruction and scheduling becomes too high in respect to the time spent doing the actual work, resulting in performance worsening!
+
+- What about I/O bound?
+
+* WordLineCount exercise solution
+
+    $ time GOMAXPROCS=1 ./wordcount -word This -goroutines 0
+    2160
+
+    real    0m8,718s
+    user    0m0,296s
+    sys     0m0,045s
+
+    $ time GOMAXPROCS=1 ./wordcount -word This -goroutines 8
+    2160
+
+    real    0m5,521s
+    user    0m0,217s
+    sys     0m0,064s
+
+    $ time GOMAXPROCS=8 ./wordcount -word This -goroutines 0
+    2160
+
+    real    0m8,695s
+    user    0m0,299s
+    sys     0m0,076s
+
+    $ time GOMAXPROCS=8 ./wordcount -word This -goroutines 8
+    2160
+
+    real    0m5,609s
+    user    0m0,271s
+    sys     0m0,082s
 
 * The Go memory allocator & garbage collector
