@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	input := flag.String("in", "lenna.png", "name of the input PNG file")
-	output := flag.String("out", "blurred.png", "name of the output PNG file")
+	input := flag.String("in", "Lenna.png", "name of the input PNG file")
+	output := flag.String("out", "Blurred.png", "name of the output PNG file")
 	kernelSz := flag.Int("size", 13, "size of the Gaussian kernel")
 	sigma := flag.Float64("sigma", 2.5, "standard deviation")
 	traceFile := flag.String("trace", "", "trace file name")
@@ -25,9 +25,7 @@ func main() {
 		if err := trace.Start(f); err != nil {
 			log.Fatalf("could not start trace: %v", err)
 		}
-		defer func() {
-			trace.Stop()
-		}()
+		defer trace.Stop()
 	}
 
 	// check requested kernel size

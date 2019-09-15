@@ -32,9 +32,7 @@ func main() {
 		if err := trace.Start(f); err != nil {
 			log.Fatalf("could not start trace: %v", err)
 		}
-		defer func() {
-			trace.Stop()
-		}()
+		defer trace.Stop()
 	}
 
 	// in order to keep it simple, we read nReaders time from the same URL

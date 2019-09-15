@@ -907,7 +907,10 @@ At startup, the Go runtime creates *GOMAXPROCS* Ps, where *GOMAXPROCS* is set to
 
 Each G is assigned a time slice of 10ms, when it is exhausted, the G is put in the global runqueue to ensure *fairness*
 
-Though the use of a time slice, the preemption checks are inserted by the compiler at function calls
+Though the use of a time slice, the preemption checks are inserted by the compiler at:
+- function calls (..but not every ones!)
+- memory allocations
+- communication primitives (creating goroutines, acquiring mutexes, sending data to a channel, etc.)
 
 Even if the Go scheduler behaves as *preemptive*, it is *cooperative*
 
