@@ -1,4 +1,6 @@
-# Run Length Encoding
+# Profiling and tracing exercises
+
+## Run Length Encoding
 
 [Run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding) is a simple form of data compression, where a stream of bytes is stored as a sequence of <data_value, data_count>.
 
@@ -17,7 +19,7 @@ Plus, in `main.go` there is a sample program to demonstrate the use of the `rle`
 
 In this exercise you should read the source code I wrote, profile it and optimize it.
 
-## Example
+### Example
 
 As a meaningful example, download [La Divina Commedia](https://www.gutenberg.org/files/1012/1012-0.txt) from [Project Gutenberg](https://www.gutenberg.org/) and save it locally as `divina-commedia.txt`.
 
@@ -25,7 +27,7 @@ Then, build the `runlengthencoding` executable. From the `runlengthencoding` fol
 
 `go build`
 
-### Encode a file
+#### Encode a file
 
 To encode a file:
 
@@ -33,7 +35,7 @@ To encode a file:
 
 This will create the `encoded.rle` file
 
-### Decode a file
+#### Decode a file
 
 To decode a file:
 
@@ -41,7 +43,7 @@ To decode a file:
 
 This will create the `decoded.out` file
 
-### Check the process of encoding and decoding
+#### Check the process of encoding and decoding
 
 To verify that the starting file and the decoded file contains the same data, compare their md5sum digest:
 
@@ -49,13 +51,30 @@ To verify that the starting file and the decoded file contains the same data, co
 
 Inside the `rle` package you will also find some unit tests to check the correctness of your changes.
 
-## Complete the exercise
+### Complete the exercise
 
 Read the source code, try to launch the tests and use the program to encode and decode some files.
 Then profile it and guess what can be optimizes.
 
 Refer to the slides to see how to generate a profile and how to read it.
 
----
-
 Source: [Dave Cheney - Two Go Programs, Three Different Profiling Techniques](https://www.youtube.com/watch?v=nok0aYiGiYA)
+
+## Parallel quicksort
+
+[Quicksort](https://en.wikipedia.org/wiki/Quicksort) is a very popular recursive sorting algorithm, with an average time complexity of O(n log n).
+
+In the `parallelqsort` folder, you can find an implementation of a parallel version of Quicksort.
+
+### Complete the exercise
+
+Read the source code to understand how it works. Build the program, execute it a generate a trace file.
+Then, examine the trace and answer the following questions:
+
+- How many goroutines, at most, are alive during the program?
+- How many threads are executing Go code, at most, during the program?
+- When the main goroutine creates the first additional goroutine to execute `qSortPar`?
+- How long does this program run for?
+- When is the first additional P started?
+
+Source: [go tool trace](https://making.pusher.com/go-tool-trace/)
