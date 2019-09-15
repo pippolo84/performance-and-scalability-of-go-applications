@@ -622,7 +622,7 @@ _"I_emphasize_the_importance_of_cache_effects._In_my_experience,_all_but_true_ex
 
 Bjarne Stroustrup - from [[https://isocpp.org/blog/2014/06/stroustrup-lists][Are lists evil?]]
 
-* Profiling
+* Profiling & Tracing
 
 * Benchmarking vs Profiling
 
@@ -711,6 +711,63 @@ To analyse the profile you generated, you can use the Go `pprof` tool
      go tool pprof <profile>
 
 It offers both a textual and a web interface, let's explore both with a live demo!
+
+* Tracing
+
+Excerpt from the Go [[https://golang.org/pkg/runtime/trace/][documentation]]
+
+"The execution trace captures a wide range of execution events related to goroutines, syscalls, GC and heap size, processor start/stop, etc.
+A precise nanosecond-precision timestamp and a stack trace is captured for most events."
+
+While profiling helps us understand *what* happened, tracing is very useful to understand *when* things happened
+
+* Tracing benchmarks
+
+You can generate execution traces directly when launching benchmarks
+
+    go test -run=^$ -bench=. -trace trace.out
+
+* Tracing whole programs
+
+To trace a whole program you can use the `runtime/trace` package.
+
+Just add this lines at the start of your `main` function
+
+    traceFile := flag.String("trace", "", "trace file name")
+    flag.Parse()
+
+    if *traceFile != "" {
+        f, err := os.Create(*traceFile)
+        // check and handle error
+        if err := trace.Start(f); err != nil {
+            log.Fatalf("could not start trace: %v", err)
+        }
+        defer trace.Stop()
+    }
+
+Then launch your program with the flag
+
+    -trace trace.out
+
+To save an execution trace inside `trace.out` file
+
+* Tracing live demo
+
+#TODO: add tracing abilities to the example programs
+
+* Tracing cheatsheet
+
+- use `?` to show Tracing Help
+- navigate using `W`, `S`, `A` and `D` keys
+- hold `Shift` to drag a box with your mouse pointer to ease selection of tiny events
+
+To analyse the trace you generated, you can use the Go `trace` tool
+
+     go tool trace <trace>
+
+*WARNING*: It can be viewed *only* using the Chrome web browser... may our RAM forgive us!
+
+Let's explore it with a live demo!
 
 * Run Length Encoding exercise
 
