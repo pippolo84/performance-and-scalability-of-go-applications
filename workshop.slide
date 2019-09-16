@@ -1190,7 +1190,7 @@ Set `stackdebug` runtime variable to 1 and execute again the code above
         [0xc000078000 0xc0000792f8 0xc00007a000]/8192
     stack grow done
 
-#TODO: image
+.image img/StackGrow.png _ 600
 
 * Go copying stacks - grow
 
@@ -1239,8 +1239,6 @@ will output
     shrinking stack 16384->8192
     copystack ... -> [0xc000054000 0xc000055eb8 0xc000056000]/8192
 
-#TODO: image
-
 * Heap allocations
 
 Consider the following snippet
@@ -1269,6 +1267,8 @@ To decide where variables should be allocated, the Go compiler uses a technique 
 We can inspect the compiler decisions using
 
     go build -gcflags="-m"
+
+More on this in a moment!
 
 * Allocations and performance
 
