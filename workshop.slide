@@ -1021,43 +1021,282 @@ Happy coding!
 
 * Gaussian Blur exercise solution
 
-- it is a CPU bound load
-- use the tracer
-- with one goroutine -> low CPU utilization
-- with runtime.NumCPU() goroutines -> best performance
-- increasing the goroutines (one per row, one per pixel) does not affect performance. They start to decrease if Gs are too much (i.e.: one per pixel)
-- if you increase too much the concurrency level, introducing concurrency even in ConvolvePixel (and so dividing furtherly the operation did sequentially), the ratio between time spent in goroutines creation, destruction and scheduling becomes too high in respect to the time spent doing the actual work, resulting in performance worsening!
+This is a *CPU*bound* load
 
-- What about I/O bound?
+Using the go trace tool, we can see that with a single goroutine we get low CPU utilization
+
+.image img/SequentialConvolveTrace.png _ 1024
+
+* Gaussian Blur exercise solution
+
+Let's write a concurrent version of `Convolve` and set the number of Goroutines equal to *GOMAXPROCS*
+
+.image img/ConcurrentConvolveTrace.png _ 1024
+
+* Gaussian Blur exercise solution
+
+Furtherly increasing the goroutines (i.e.: one per row) does not affect performance too much
+
+Instead, we can see a worsening if Gs are too much (i.e.: one per pixel), due to goroutine management overhead
+
+Note that there is still a substantial amount of the trace (writing the transformed image) where we are using just one G and one M
+
+Even if we increase the HW cores, thus increasing the parallelism level of the convolution part, there will be a point in which we won't gain anything. This is due to the sequential part dominating the execution time.
+
+This effect is described by the [[https://en.wikipedia.org/wiki/Amdahl%27s_law][Amdahl law]]
 
 * WordLineCount exercise solution
 
-    $ time GOMAXPROCS=1 ./wordcount -word This -goroutines 0
-    2160
+What about an I/O bound load? We gain a great performance improvement using concurrency, but increasing the parallelism level does not change anything
 
+    $ time GOMAXPROCS=1 ./wordcount -word This -goroutines 0
     real    0m8,718s
     user    0m0,296s
     sys     0m0,045s
 
     $ time GOMAXPROCS=1 ./wordcount -word This -goroutines 8
-    2160
-
     real    0m5,521s
     user    0m0,217s
     sys     0m0,064s
 
     $ time GOMAXPROCS=8 ./wordcount -word This -goroutines 0
-    2160
-
     real    0m8,695s
     user    0m0,299s
     sys     0m0,076s
 
     $ time GOMAXPROCS=8 ./wordcount -word This -goroutines 8
-    2160
-
     real    0m5,609s
     user    0m0,271s
     sys     0m0,082s
 
 * The Go memory allocator & garbage collector
+
+* Process virtual memory layout
+
+.image img/LinuxVirtualMemoryLayout64bit.svg _ 800
+
+* Go memory allocator
+
+# - no glibc
+# - derived from TCMalloc, uses sbrk and mmap
+
+* Stack frame
+
+Stack is managed in *frames*: individual memory space for each function call
+
+Reserving a new frame and invalidate one can be done just bumping up or down the _Stack_Pointer_ register
+
+    func main() {
+        x := 10
+        f()
+
+        println(&x)
+    }
+
+    //go:noinline
+    func f() {
+        y := 20
+        println(&y)
+    }
+
+* Stack frame
+
+frame for the `main` function
+
+.image img/StackFrames1.png 400 _
+
+* Stack frame
+
+frame for the `f` function
+
+.image img/StackFrames2.png 400 _
+
+* Stack frame
+
+after returning from the `f` function
+
+.image img/StackFrames3.png 400 _
+
+`f` frame is not deleted, the runtime simply update the _Stack_Pointer_ register value
+
+* Goroutine stack size
+
+    import "fmt"
+
+    type S struct {
+            a, b int
+    }
+
+    // String implements the fmt.Stringer interface
+    func (s *S) String() string {
+            return fmt.Sprintf("%s", s) // Sprintf will call s.String()
+    }
+
+    func main() {
+            s := &S{a: 1, b: 2}
+            fmt.Println(s)
+    }
+
+from [[https://dave.cheney.net/2013/06/02/why-is-a-goroutines-stack-infinite][Why is a Goroutine’s stack infinite ?]]
+
+* Goroutine stack size
+
+    $ go run stack-size.go
+    runtime: goroutine stack exceeds 1000000000-byte limit
+    fatal error: stack overflow
+
+from src/runtime/proc.go
+
+	// Max stack size is 1 GB on 64-bit, 250 MB on 32-bit.
+	if sys.PtrSize == 8 {
+		maxstacksize = 1000000000
+	} else {
+		maxstacksize = 250000000
+	}
+
+But
+
+    $ ulimit -s
+    8192
+
+*Quick*quiz*: how is it possible to have a 1 GB stack size if thread stack size is limited to 8 MB?
+
+* System stack vs User stack
+
+Excerpt from src/runtime/HACKING.md
+
+    Every non-dead G has a _user_stack_ associated with it, which is what user Go code executes on.
+    User stacks start small (2K) and grow or shrink dynamically.
+
+    Every M has a _system_stack_ associated with it and, on Unix platforms, a signal stack.
+    System and signal stacks cannot grow, but are large enough to execute runtime and cgo code
+    (8K in a pure Go binary).
+
+Goroutines _user_stacks_ are allocated on the *heap* and *dynamically*resized*!
+
+*Quick*quiz*: can you guess why goroutines cannot share stack allocated values just passing pointers?
+
+* Go copying stacks - grow
+
+Set `stackdebug` runtime variable to 1 and execute again the code above
+
+    // copy stack, size is increased from 2048 to 4096 bytes
+    copystack gp=0xc000000180 [0xc000044000 0xc000044350 0xc000044800] ->
+        [0xc000088000 0xc000088b50 0xc000089000]/4096
+    stack grow done
+    ...
+    // copy stack, size is increased from 4096 to 8192 bytes
+    copystack gp=0xc000000180 [0xc000088000 0xc0000882f8 0xc000089000] ->
+        [0xc000078000 0xc0000792f8 0xc00007a000]/8192
+    stack grow done
+
+#TODO: image
+
+* Go copying stacks - grow
+
+Go compiler will insert stack size check at functions prologue, if needed
+
+    ;; stack split prologue
+    0x0000 00000 MOVQ	(TLS), CX
+    0x0009 00009 CMPQ	SP, 16(CX)
+    0x000d 00013 JLS	142
+
+    ;; function body
+
+    ;; stack split epilogue
+    0x008e 00142 NOP
+    0x008e 00142 PCDATA	$1, $-1
+    0x008e 00142 PCDATA	$0, $-1
+    0x008e 00142 CALL	runtime.morestack_noctxt(SB)
+
+Go compiler is smart enough to identify functions that don't need a growing stack, marking them as `NOSPLIT`
+
+    TEXT	"".f(SB), NOSPLIT|ABIInternal, $0-0
+
+* Go copying stacks - shrink
+
+The stack is shrinked, if needed, by the garbage collector
+
+    //go:noinline
+    func f() {
+        var x [1000]int
+        println(&x)
+    }
+
+    func main() {
+        f()
+        println("before GC")
+        runtime.GC()
+    }
+
+will output
+
+    copystack ... -> [0xc00008c000 0xc00008ff38 0xc000090000]/16384
+    stack grow done
+    ...
+    before GC
+    ...
+    shrinking stack 16384->8192
+    copystack ... -> [0xc000054000 0xc000055eb8 0xc000056000]/8192
+
+#TODO: image
+
+* Heap allocations
+
+Consider the following snippet
+
+    type s struct {
+        v int
+    }
+
+    func newStruct() *s {
+        return &s{10}
+    }
+
+*Quick*quiz*: where that `s` object will be allocated? On the stack or on the heap?
+
+* Heap allocations
+
+[[https://golang.org/ref/spec][The Go Programming Language Specification]] does not define where items will be allocated
+
+However, certain requirements will exclude some choices: stack allocation requires that
+
+- the lifetime of a variable can be determined at compile time
+- the memory footprint of a variable can be determined at compile time
+
+To decide where variables should be allocated, the Go compiler uses a technique called *escape*analysis*
+
+We can inspect the compiler decisions using
+
+    go build -gcflags="-m"
+
+* Allocations and performance
+
+From the kernel point of view, a Go program allocates variables using
+- the stack (that is, the *system*stack*) of each threads the program starts
+- the heap, managed with a custom allocator
+
+But, from the perspective of a Go programmer, our goroutines allocate variables
+- on the *user*stack*, backed by heap allocations in the runtime
+- on the heap
+
+*Quick*quiz*: why are stack allocations considered to be cheaper than heap allocations?
+
+* Memory reclaiming
+
+- *Stack*: to invalidate a memory frame, we just need to change the value of the _Stack_Pointer_ register. If needed, the garbage collector kicks in to shrink the stack, but that is a very fast operation
+- *Heap*: to reclaim unreachable memory, we need a round of garbage collection
+
+* Performance vs safety tradeoff
+
+From Twitter
+
+.image img/GoGCTwitter.png
+
+Remember that Go is primarily target to high-performance web service, so OOMs are to be particularly feared.
+
+* Garbage collection in Go
+
+* Garbage collection details
+
+* Escape analysis rules
