@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"performance-and-scalability-of-go-applications/04-profiling/runlengthencoding/rle"
+	"performance-and-scalability-of-go-applications/04-profiling-and-tracing/runlengthencoding/rle"
 	"runtime/pprof"
 )
 
