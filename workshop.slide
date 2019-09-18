@@ -1266,7 +1266,7 @@ To decide where variables should be allocated, the Go compiler uses a technique 
 
 We can inspect the compiler decisions using
 
-    go build -gcflags="-m"
+    go build -gcflags="all=-m"
 
 More on this in a moment!
 
