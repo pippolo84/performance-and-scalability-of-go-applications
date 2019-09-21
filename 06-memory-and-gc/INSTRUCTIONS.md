@@ -128,9 +128,15 @@ Read the source code, then profile heap allocations with `pprof`. Get info about
 
 To measure how many requests/sec this service is able to fulfill, you can use the [hey](https://github.com/rakyll/hey) tool
 
-hey -m GET -c 50 -n 5000 "http://localhost:8080/search?user=1"
+You can install it with
 
-Use it to prove that your optimizations lead to an increase of requests per second fulfilled
+`go get -u github.com/rakyll/hey`
+
+then you can load our web service like this
+
+`hey -m GET -c 50 -n 5000 "http://localhost:8080/search?user=1"`
+
+Use it to prove that your optimizations lead to an increase of requests per second!
 
 Inspired by: [William Kennedy - Garbage Collection in Go posts series](https://www.ardanlabs.com/blog/2018/12/garbage-collection-in-go-part1-semantics.html)
 
