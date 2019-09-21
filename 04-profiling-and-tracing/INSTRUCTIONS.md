@@ -2,7 +2,7 @@
 
 ## Run Length Encoding
 
-[Run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding) is a simple form of data compression, where a stream of bytes is stored as a sequence of <data_value, data_count>.
+[Run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding) is a simple form of data compression, where a stream of bytes is stored as a sequence of pairs <data_value, data_count>.
 
 As an example, consider the following byte stream:
 
@@ -54,7 +54,7 @@ Inside the `rle` package you will also find some unit tests to check the correct
 ### Complete the exercise
 
 Read the source code, try to launch the tests and use the program to encode and decode some files.
-Then profile it and guess what can be optimizes.
+Then profile it and guess what can be optimized.
 
 Refer to the slides to see how to generate a profile and how to read it.
 
