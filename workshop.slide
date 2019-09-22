@@ -20,7 +20,7 @@ https://github.com/Pippolo84
     }
 
 - download the workshop material
-    git clone git@github.com:Pippolo84/performance-and-scalability-of-go-applications.git
+    git clone --depth 1 git@github.com:Pippolo84/performance-and-scalability-of-go-applications.git
 
 - peeking inside the solution folders is not allowed ;-)
 
@@ -256,7 +256,7 @@ That's why the rest of this workshop is dedicated to that! ;-)
 
 - Modern CPU architecture
 - Benchmarking
-- Profiling
+- Profiling & Tracing
 - The Go scheduler
 - The Go memory allocator & garbage collector
 
@@ -285,7 +285,7 @@ and above all...
 
 .image https://media.giphy.com/media/n2IekUAIvjz2w/giphy.gif
 
-*Quick*quiz*: try to guess the increase in CPU utilization due to this GIF, then measure it with top
+*Quick*quiz*: try to guess the increase in CPU utilization due to this GIF, then measure it with the top utility
 
 * Advanced HW tweaking to improve stability
 
@@ -650,6 +650,8 @@ Every 10ms, the signal `SIGPROF` is delivered, and the handler unwinds the stack
 
 * How the Heap profiler works
 
+#TODO: give more details for heap profiling, here or later (see ~/go-project/src/workshop/wordcount)
+
 These profiles don't require the delivery of any signals, the runtime itself will collect samples while allocating memory on the heap.
 Not all allocations are sampled, if you like to see every one of them, you should set
 
@@ -675,6 +677,10 @@ For web servers, you can use the `net/http/pprof` package to expose an endpoint 
 2) If your application is not already running an HTTP server, then start one
 
     http.ListenAndServe(":8080", nil)
+
+3) Collect and show profiling samples
+
+    go tool pprof -http=:3999 http://localhost:8080/debug/pprof/profile
 
 You can find an example in
 
@@ -710,7 +716,7 @@ To analyse the profile you generated, you can use the Go `pprof` tool
 
      go tool pprof <profile>
 
-It offers both a textual and a web interface, let's explore both with a live demo!
+It offers both a textual and a web interface, let's explore them with a live demo!
 
 * Tracing
 
@@ -726,6 +732,24 @@ While profiling helps us understand *what* happened, tracing is very useful to u
 You can generate execution traces directly when launching benchmarks
 
     go test -run=^$ -bench=. -trace trace.out
+
+* Tracing web servers
+
+1) Import `pprof` package with a blank import
+
+    import _ net/http/pprof
+
+2) If your application is not already running an HTTP server, then start one
+
+    http.ListenAndServe(":8080", nil)
+
+3) Collect the trace
+
+    go tool trace http://localhost:8080/debug/trace?seconds=10 > trace.out
+
+4) Show the trace
+
+    go tool trace trace.out
 
 * Tracing whole programs
 
@@ -751,23 +775,17 @@ Then launch your program with the flag
 
 To save an execution trace inside `trace.out` file
 
-* Tracing live demo
-
-#TODO: add tracing abilities to the example programs
-
 * Tracing cheatsheet
 
 - use `?` to show Tracing Help
 - navigate using `W`, `S`, `A` and `D` keys
 - hold `Shift` to drag a box with your mouse pointer to ease selection of tiny events
 
-To analyse the trace you generated, you can use the Go `trace` tool
-
-     go tool trace <trace>
-
 *WARNING*: It can be viewed *only* using the Chrome web browser... may our RAM forgive us!
 
 Let's explore it with a live demo!
+
+#TODO: add tracing abilities to the example programs
 
 * Run Length Encoding exercise
 
@@ -1075,11 +1093,6 @@ What about an I/O bound load? We gain a great performance improvement using conc
 
 .image img/LinuxVirtualMemoryLayout64bit.svg _ 800
 
-* Go memory allocator
-
-# - no glibc
-# - derived from TCMalloc, uses sbrk and mmap
-
 * Stack frame
 
 Stack is managed in *frames*: individual memory space for each function call
@@ -1282,21 +1295,315 @@ But, from the perspective of a Go programmer, our goroutines allocate variables
 
 *Quick*quiz*: why are stack allocations considered to be cheaper than heap allocations?
 
-* Memory reclaiming
+* Go memory allocations
+
+Go custom allocator guarantees to
+
+1) efficiently satisfy allocations of a given size, avoiding fragmentation
+
+Go allocator uses *spans* of like-sized objects, defining ~70 different class sizes
+
+2) avoid locking in the common case
+
+Go allocator uses a hierarchies of caches, where the first layer is a per P *mcache*
+
+*Quick*quiz*: why each P should get a memory cache?
+
+* Go memory reclaiming
 
 - *Stack*: to invalidate a memory frame, we just need to change the value of the _Stack_Pointer_ register. If needed, the garbage collector kicks in to shrink the stack, but that is a very fast operation
 - *Heap*: to reclaim unreachable memory, we need a round of garbage collection
 
 * Performance vs safety tradeoff
 
-From Twitter
+From a discussion about Go vs Rust
 
 .image img/GoGCTwitter.png
 
-Remember that Go is primarily target to high-performance web service, so OOMs are to be particularly feared.
+Remember that Go is heavily used to build high-performance web services, so OOMs are to be particularly feared.
 
 * Garbage collection in Go
 
-* Garbage collection details
+Concurrent tri-color mark & sweep collector
 
-* Escape analysis rules
+* Tri-color mark & sweep algorithm
+
+We define three types of object sets
+
+- *white*set*: objects that are candidate to be collected
+- *black*set*: objects that are reachable and that do not have references to objects in the white set
+- *grey*set*: objects that are reachable, but still not entirely scanned for references to white objects
+
+We start from the root references like top-level variables and stack allocated references
+
+* Tri-color mark & sweep algorithm
+
+During the tri-color marking phase, objects:
+- start as *white* at the beginning
+- become *grey* when they are found to be alive
+- finally become *black* when all their references have been traversed
+
+.image img/TricolorMarkSweep-1.svg _ 550
+
+* Tri-color mark & sweep algorithm
+
+During the tri-color marking phase, objects:
+- start as *white* at the beginning
+- become *grey* when they are found to be alive
+- finally become *black* when all their references have been traversed
+
+.image img/TricolorMarkSweep-2.svg _ 550
+
+* Tri-color mark & sweep algorithm
+
+During the tri-color marking phase, objects:
+- start as *white* at the beginning
+- become *grey* when they are found to be alive
+- finally become *black* when all their references have been traversed
+
+.image img/TricolorMarkSweep-3.svg _ 550
+
+* Concurrent marking
+
+The described algorithm must hold the *tri-color*invariant* to work properly
+
+_at_any_moment,_no_black_objects_should_reference_white_objects_
+
+But the marking is happening concurrently to our program goroutines.
+
+* Concurrent marking
+
+Consider the following scenario
+
+    type S struct {
+        p *int
+    }
+
+    func f(s *S) *int {
+        r := s.p
+        s.p = nil
+        return r
+    }
+
+from [[https://www.youtube.com/watch?v=M0HER1G5BRw][Eben Freeman - Allocator Wrestling]]
+
+* Concurrent marking
+
+A concurrent mark phase is running, this is the current state
+
+.image img/WriteBarrier1.svg
+
+* Concurrent marking
+
+We execute the `f` function and
+
+.image img/WriteBarrier2.svg
+
+The tri-color invariant is violated!
+
+* Write barrier
+
+During the mark phase, the runtime enables the *write*barrier* for each pointer write
+
+To enable and disable the write barrier, the Go runtime needs to *stop*the*world*, in other words, to block all goroutines.
+
+*STW* phases typical latencies
+
+Mark Setup: 10 to 30 microseconds on average
+Mark Termination: 60 to 90 microseconds on average
+
+#TODO: Show some traces?
+
+* STW phases and tight loops
+
+Take a look at the example in `06-memory-and-gc/gctightloopexample/main.go`
+
+There are some goroutines that allocate heavily and trigger the GC
+
+There are other goroutines crunching numbers in a tight loop
+
+*Quick*quiz*: can you guess what is going to happen?
+
+* STW phases and tight loops
+
+.image img/GCTightLoop.png 375 _
+
+The duration of the STW sweep termination phase is *huge*: > 100ms
+
+The GC is waiting for the goroutine 32 (the bottom line marked as G32) to finish its work and so give a chance to the runtime to complete the sweep phase
+
+* Pacing algorithm
+
+The main task of the GC is giving the impression of an infinite heap, while avoiding OOM errors
+
+To do this it is fundamental to start the gc cycles at the right time
+
+When does a garbage collection cycle start in Go?
+
+At the end of every GC, the runtime configures the target heap size as a function of the current heap live size
+
+The target value depends on the *GOGC* environment variable through the following formula
+
+goal = reachable * (1+ GOGC/100)
+
+By default, *GOGC* is set to 100, so for a live heap of 256 MB, the target for the next collection would be set to
+
+256 MB * (1 + 100/100) = 512 MB
+
+* Pacing algorithm
+
+After defining the target size, the runtime starts the next collection so that when the mark phase ends, the size of the heap in use is equal to the goal set
+
+We can trace the garbage collection cycles of an application with
+
+    GODEBUG=gctrace=1 ./main
+
+    gc 406 @12.463s 2%: 0.062+1.4+0.018 ms clock, 0.50+1.1/2.6/0+0.14 ms cpu, 8->9->4 MB, 10 MB goal, 8 P
+
+    gc 407 @12.466s 2%: 0.018+1.8+0.011 ms clock, 0.14+1.1/3.1/0+0.093 ms cpu, 7->8->4 MB, 9 MB goal, 8 P
+
+    gc 408 @12.469s 2%: 0.075+4.0+0.008 ms clock, 0.60+2.4/2.8/0+0.071 ms cpu, 7->9->5 MB, 8 MB goal, 8 P
+
+The format is described [[https://golang.org/pkg/runtime/#hdr-Environment_Variables][here]] under "gctrace"
+
+* Pacing algorithm
+
+Every line shows info about a GC cycle. Consider the last one, the following values
+
+    7->9->5 MB, 8 MB goal
+
+means:
+
+- 7 MB heap memory in use before the mark phase started
+- 9 MB heap memory in use after the mark phase finished
+- 5 MB heap memory marked as live after the mark phase
+- 8 MB next collection goal
+
+* Mark assist
+
+What happen if the application goroutines allocate heavily during the concurrent mark phase? They can, potentially, outrun the GC, leading to OOM!
+
+To slow down the allocation rate, the GC recruits the allocating goroutines to assist with the marking
+
+.image img/MarkAssistTrace.png _ 620
+
+#feedback loop
+
+#Stress can be defined as how fast the application is allocating heap memory within a given amount of time. It’s that stress that determines the pace at which the collector needs to run. Before the collector starts a collection, it calculates the amount of time it believes it will take to finish the collection. Then once a collection is running, latencies will be inflicted on the running application that will slow down application work. Every collection adds to the overall latency of the application. One misconception is thinking that slowing down the pace of the collector is a way to improve performance. The idea being, if you can delay the start of the next collection, then you are delaying the latency it will inflict. Being sympathetic with the collector isn’t about slowing down the pace. You could decide to change the GC Percentage value to something larger than 100. This will increase the amount of heap memory that can be allocated before the next collection has to start. This could result in the pace of collection to slow down. Don’t consider doing this. Attempting to directly affect the pace of collection has nothing to do with being sympathetic with the collector. It’s really about getting more work done between each collection or during the collection. You affect that by reducing the amount or the number of allocations any piece of work is adding to heap memory. Note: The idea is also to achieve the throughput you need with the smallest heap possible. Remember, minimizing the use of resources like heap memory is important when running in cloud environments. Adjusting the pace of the collection to delay the latency cost is not how you improve the performance of your application. It’s about reducing the amount of time the collector needs to run, which in turn will reduce the amount of latency cost being inflicted. The latency costs inflicted by the collector has been explained, but let me summarize it again for clarity.
+
+* Garbage collection performance impact
+
+To summarize, the garbage collection inflicts latencies to our running application through these means
+
+- 25% of the CPU capacity dedicated to GC during mark phase
+- STW pauses before and after the mark phase
+- write barrier enabled during mark phase
+- mark assist for goroutines allocating heavily during mark phase
+
+Sweep phase are negligible
+
+* Performance guidelines
+
+You can tune the garbage collector modifying *GOGC* environment variable
+
+If you increase it, you will slow down the garbage collector pacing
+
+*Quick*quiz*: can you guess why this is not the best thing to do in most cases?
+
+* Performance guidelines
+
+The work of the GC is proportional to the scannable heap
+
+1) Allocate less memory
+avoid memory allocations in hot path or use [[http://golang-sizeof.tips/][struct packing]]
+
+2) Prefer stack allocations
+use escape analysis to understand where and why an allocation escapes to the heap
+
+3) Avoid as much as possible the use of pointers
+non pointer types are not scanned by the GC
+
+4) Consider reusing memory
+`Sync.Pool` has been improved in Go 1.13
+
+* A primer on escape analysis
+
+http://www.agardner.me/golang/garbage/collection/gc/escape/analysis/2015/10/18/go-escape-analysis.html
+
+* See also
+
+https://dave.cheney.net/high-performance-go-workshop/gophercon-2019.html#memory-and-gc
+
+This is valid for our exercises (getComments, getPosts, RLE):
+
+https://dave.cheney.net/high-performance-go-workshop/gophercon-2019.html#dont_force_allocations_on_the_callers_of_your_api
+
+* Word Frequency exercise
+
+Follow the instructions inside
+
+    06-memory-and-gc/INSTRUCTIONS.md
+
+Happy coding!
+
+* Word Frequency exercise solution
+
+// to identify PROBLEM:
+// look at a CPU profile
+// 1) start the server
+// 2) go tool pprof -http=:9090 http://localhost:8080/debug/pprof/profile
+// 3) hey -m GET -c 10 -n 1000 "http://localhost:8080/search?user=1"
+// IN THIS ORDER, since the cpu profiler samples data every 10ms
+// you'll see A LOT of time spent in WordsFreq, in particular in strings.Fields
+//
+// then look at the heap profile
+// go tool pprof -http=:9090 http://localhost:8080/debug/pprof/heap
+// select `alloc_space` samples
+// You'll see A LOT of allocations in strings.Fields
+//
+// We can look at the trace too:
+// add this code to the start of service.Search function
+//
+// start tracing program events to trace.out file
+// f, err := os.Create("trace.out")
+// if err != nil {
+// 	panic(err)
+// }
+// defer f.Close()
+// if err := trace.Start(f); err != nil {
+// 	panic(err)
+// }
+// defer trace.Stop()
+//
+// Though we will trace just a single request, it is useful to see it:
+// we will see how the heap grows significantly and how there are
+// goroutines in MARK ASSIST (though the MARK ASSIST, here, can be for other allocations)
+
+// SOLUTION:
+// avoid allocating slices of string calling strings.Fields
+// loop over text to search for separators (only ' ' and '\n'), extract the
+// word and add it to wfreq
+
+// to prove the solution:
+
+// you won't see A LOT of allocations from strings.Fields anymore
+// 2) check how many requests/sec we are now able to fulfill with `hey`
+// 3) take a look at the GC trace with
+// GODEBUG=gctrace=1 ./solution
+
+// you can improve further by definining a sound starting capacity for
+// the comments slice in social.getComments: this way we will lower
+// the number of reallocations of the slice
+
+* Run Length Encoding Part 2 exercise
+
+* Run Length Encoding Part 2 exercise solution
+
+* Go 1.13
+
+sync.Pool
+mid-stack inliner
+
+* Optimization workflow
+
+see https://github.com/dgryski/go-perfbook/blob/master/performance.md#optimization-workflow
