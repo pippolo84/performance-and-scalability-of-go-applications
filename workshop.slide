@@ -1548,52 +1548,71 @@ Happy coding!
 
 * Word Frequency exercise solution
 
-// to identify PROBLEM:
-// look at a CPU profile
-// 1) start the server
-// 2) go tool pprof -http=:9090 http://localhost:8080/debug/pprof/profile
-// 3) hey -m GET -c 10 -n 1000 "http://localhost:8080/search?user=1"
-// IN THIS ORDER, since the cpu profiler samples data every 10ms
-// you'll see A LOT of time spent in WordsFreq, in particular in strings.Fields
-//
-// then look at the heap profile
-// go tool pprof -http=:9090 http://localhost:8080/debug/pprof/heap
-// select `alloc_space` samples
-// You'll see A LOT of allocations in strings.Fields
-//
-// We can look at the trace too:
-// add this code to the start of service.Search function
-//
-// start tracing program events to trace.out file
-// f, err := os.Create("trace.out")
-// if err != nil {
-// 	panic(err)
-// }
-// defer f.Close()
-// if err := trace.Start(f); err != nil {
-// 	panic(err)
-// }
-// defer trace.Stop()
-//
-// Though we will trace just a single request, it is useful to see it:
-// we will see how the heap grows significantly and how there are
-// goroutines in MARK ASSIST (though the MARK ASSIST, here, can be for other allocations)
+to found the problem, first look at a CPU profile
 
-// SOLUTION:
-// avoid allocating slices of string calling strings.Fields
-// loop over text to search for separators (only ' ' and '\n'), extract the
-// word and add it to wfreq
+1) start the server
+2) go tool pprof -http=:9090 http://localhost:8080/debug/pprof/profile
+3) hey -m GET -c 10 -n 1000 "http://localhost:8080/search?user=1"
 
-// to prove the solution:
+N.B.: IN THIS ORDER, since the cpu profiler samples data every 10ms
 
-// you won't see A LOT of allocations from strings.Fields anymore
-// 2) check how many requests/sec we are now able to fulfill with `hey`
-// 3) take a look at the GC trace with
-// GODEBUG=gctrace=1 ./solution
+You'll see A LOT of time spent in WordsFreq, in particular in strings.Fields!
 
-// you can improve further by definining a sound starting capacity for
-// the comments slice in social.getComments: this way we will lower
-// the number of reallocations of the slice
+* Word Frequency exercise solution
+
+Then look at the heap profile
+
+1) go tool pprof -http=:9090 http://localhost:8080/debug/pprof/heap
+2) select `alloc_space` samples
+
+You'll see A LOT of allocations in strings.Fields!
+
+* Word Frequency exercise solution
+
+We can look at the trace too!
+
+1) add this code to the start of service.Search function
+
+    //start tracing program events to trace.out file
+    f, err := os.Create("trace.out")
+    if err != nil {
+        panic(err)
+    }
+    defer f.Close()
+    if err := trace.Start(f); err != nil {
+        panic(err)
+    }
+    defer trace.Stop()
+
+Even tracing just a single request, we can see that:
+- the heap is growing significantly
+- there are goroutines in MARK ASSIST
+
+2) inspect the work of the GC
+
+    GODEBUG=gctrace=1 ./wordcounter
+
+* Word Frequency exercise solution
+
+To reduce allocations and GC pressure, a possible solution is to avoid `strings.Fields`
+
+Just loop over the text to search for separators (only ' ' and '\n'), extract the words and account them in wfreq
+
+To prove the solution, repeat the steps above. Specifically, check how many requests/sec we are now able to fulfill with `hey`
+
+* Strings allocations exercise
+
+
+* Strings allocations exercise solution
+
+Have a look at the proposed solution: there are various way to fulfill the task
+
+To compare them
+
+    go test -v . -bench=. -benchmem -count=5 > bench.txt
+    benchstat bench.txt
+
+Preallocated slice is the winner!
 
 * Run Length Encoding Part 2 exercise
 

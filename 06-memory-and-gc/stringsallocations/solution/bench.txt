@@ -1,0 +1,35 @@
+goos: linux
+goarch: amd64
+pkg: performance-and-scalability-of-go-applications/06-memory-and-gc/stringsallocations/solution
+BenchmarkStrcat/StrcatStrAppend-8         	 1203231	       992 ns/op	     128 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatStrAppend-8         	 1217017	       984 ns/op	     128 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatStrAppend-8         	 1228420	       990 ns/op	     128 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatStrAppend-8         	 1227709	       991 ns/op	     128 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatStrAppend-8         	 1231039	      1016 ns/op	     128 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatStrBuilder-8        	 1384358	       909 ns/op	     112 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatStrBuilder-8        	 1382559	       843 ns/op	     112 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatStrBuilder-8        	 1394400	       886 ns/op	     112 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatStrBuilder-8        	 1409257	       879 ns/op	     112 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatStrBuilder-8        	 1365921	       858 ns/op	     112 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatSprintf-8           	 1329217	       913 ns/op	     120 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatSprintf-8           	 1294069	       915 ns/op	     120 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatSprintf-8           	 1301832	       911 ns/op	     120 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatSprintf-8           	 1302478	       909 ns/op	     120 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatSprintf-8           	 1287070	       933 ns/op	     120 B/op	       5 allocs/op
+BenchmarkStrcat/StrcatBytesBuffer-8       	 1011260	      1139 ns/op	     232 B/op	       7 allocs/op
+BenchmarkStrcat/StrcatBytesBuffer-8       	  884030	      1170 ns/op	     232 B/op	       7 allocs/op
+BenchmarkStrcat/StrcatBytesBuffer-8       	 1000000	      1193 ns/op	     232 B/op	       7 allocs/op
+BenchmarkStrcat/StrcatBytesBuffer-8       	 1014811	      1144 ns/op	     232 B/op	       7 allocs/op
+BenchmarkStrcat/StrcatBytesBuffer-8       	 1014655	      1162 ns/op	     232 B/op	       7 allocs/op
+BenchmarkStrcat/StrcatSlicePreallocated-8 	 1570653	       769 ns/op	      88 B/op	       3 allocs/op
+BenchmarkStrcat/StrcatSlicePreallocated-8 	 1628914	       770 ns/op	      88 B/op	       3 allocs/op
+BenchmarkStrcat/StrcatSlicePreallocated-8 	 1524861	       756 ns/op	      88 B/op	       3 allocs/op
+BenchmarkStrcat/StrcatSlicePreallocated-8 	 1533855	       770 ns/op	      88 B/op	       3 allocs/op
+BenchmarkStrcat/StrcatSlicePreallocated-8 	 1604718	       741 ns/op	      88 B/op	       3 allocs/op
+BenchmarkStrcat/StrcatByteSlice-8         	 1322899	       919 ns/op	     160 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatByteSlice-8         	 1234080	       945 ns/op	     160 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatByteSlice-8         	 1239768	       976 ns/op	     160 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatByteSlice-8         	 1219414	       985 ns/op	     160 B/op	       6 allocs/op
+BenchmarkStrcat/StrcatByteSlice-8         	 1212262	       940 ns/op	     160 B/op	       6 allocs/op
+PASS
+ok  	performance-and-scalability-of-go-applications/06-memory-and-gc/stringsallocations/solution	59.987s

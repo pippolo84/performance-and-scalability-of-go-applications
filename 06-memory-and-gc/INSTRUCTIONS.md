@@ -140,6 +140,23 @@ Use it to prove that your optimizations lead to an increase of requests per seco
 
 Inspired by: [William Kennedy - Garbage Collection in Go posts series](https://www.ardanlabs.com/blog/2018/12/garbage-collection-in-go-part1-semantics.html)
 
+## Strings Allocations
+
+You have to optimize an application that log a huge amount of requests. Each request is identified by an id, a request name and a timestamp.
+To log the request, you need to produce a string in this format:
+
+`"<id> <name> <time>"`
+
+Do your best to find the fastest way to do so!
+
+### Complete the exercise
+
+Open the file `salloc.go` and write one or more implementation of the requested API.
+
+Use escape analysis and heap profiling to reduce allocations as much as possible. Use benchmarking to prove that reducing allocations results in better performance.
+
+Source: [Dave Cheney - High Performance Go Workshop](https://dave.cheney.net/high-performance-go-workshop/gophercon-2019.html#avoid_string_concatenation)
+
 ## Run Length Encoding
 
 TODO
