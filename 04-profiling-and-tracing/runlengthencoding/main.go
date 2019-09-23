@@ -3,51 +3,47 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"performance-and-scalability-of-go-applications/04-profiling-and-tracing/runlengthencoding/rle"
 	"runtime/pprof"
 )
 
-func encodeFile(f string) error {
+func encodeFile(f string) (n int64, err error) {
 	in, err := os.Open(f)
 	if err != nil {
-		return err
+		return n, err
 	}
 	defer in.Close()
 
-	encoded, err := rle.Encode(in)
+	encoded, err := os.Create("encoded.rle")
 	if err != nil {
-		return err
+		return n, err
 	}
+	defer encoded.Close()
 
-	err = ioutil.WriteFile("encoded.rle", encoded, 0644)
-	if err != nil {
-		return err
-	}
+	rleWriter := rle.NewWriter(encoded)
 
-	return nil
+	return io.Copy(rleWriter, in)
 }
 
-func decodeFile(f string) error {
+func decodeFile(f string) (n int64, err error) {
 	in, err := os.Open(f)
 	if err != nil {
-		return err
+		return n, err
 	}
 	defer in.Close()
 
-	decoded, err := rle.Decode(in)
+	decoded, err := os.Create("decoded.out")
 	if err != nil {
-		return err
+		return n, err
 	}
+	defer decoded.Close()
 
-	err = ioutil.WriteFile("decoded.out", decoded, 0644)
-	if err != nil {
-		return err
-	}
+	rleReader := rle.NewReader(in)
 
-	return nil
+	return io.Copy(decoded, rleReader)
 }
 
 func main() {
@@ -71,12 +67,12 @@ func main() {
 
 	switch flag.Args()[0] {
 	case "e":
-		err := encodeFile(flag.Args()[1])
+		_, err := encodeFile(flag.Args()[1])
 		if err != nil {
 			panic(err)
 		}
 	case "d":
-		err := decodeFile(flag.Args()[1])
+		_, err := decodeFile(flag.Args()[1])
 		if err != nil {
 			panic(err)
 		}
