@@ -239,6 +239,7 @@ Constant factors are important. What are they determined by?
 
 - memory access pattern
 - algorithms implemented in hardware
+- characteristics of our input dataset
 - ...
 
 * Take home message
@@ -754,10 +755,6 @@ For web servers, you can use the `net/http/pprof` package to expose an endpoint 
 
     http.ListenAndServe(":8080", nil)
 
-3) Collect and show profiling samples
-
-    go tool pprof -http=:3999 http://localhost:8080/debug/pprof/profile
-
 You can find an example in
 
     04-profiling/profilingexamples/server
@@ -788,11 +785,15 @@ To save a CPU profile inside `cpu.prof` file
 
 * pprof live demo
 
-To analyse the profile you generated, you can use the Go `pprof` tool
+To analyse the profile you generated, you can use the Go `pprof` tool, with a textual interface
 
      go tool pprof <profile>
 
-It offers both a textual and a web interface, let's explore them with a live demo!
+or a web based one
+
+    go tool pprof -http=:9090 <profile>
+
+Let's explore both of them with a live demo!
 
 * Tracing
 
@@ -823,10 +824,6 @@ You can generate execution traces directly when launching benchmarks
 
     go tool trace http://localhost:8080/debug/trace?seconds=10 > trace.out
 
-4) Show the trace
-
-    go tool trace trace.out
-
 * Tracing whole programs
 
 To trace a whole program you can use the `runtime/trace` package.
@@ -852,6 +849,10 @@ Then launch your program with the flag
 To save an execution trace inside `trace.out` file
 
 * Tracing cheatsheet
+
+To analyze a trace
+
+    go tool trace <trace>
 
 - use `?` to show Tracing Help
 - navigate using `W`, `S`, `A` and `D` keys
