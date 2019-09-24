@@ -156,11 +156,3 @@ Open the file `salloc.go` and write one or more implementation of the requested 
 Use escape analysis and heap profiling to reduce allocations as much as possible. Use benchmarking to prove that reducing allocations results in better performance.
 
 Source: [Dave Cheney - High Performance Go Workshop](https://dave.cheney.net/high-performance-go-workshop/gophercon-2019.html#avoid_string_concatenation)
-
-## Run Length Encoding
-
-TODO
-
-### Complete the exercise
-
-TODO

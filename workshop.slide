@@ -1538,7 +1538,7 @@ This is valid for our exercises (getComments, getPosts, RLE):
 
 https://dave.cheney.net/high-performance-go-workshop/gophercon-2019.html#dont_force_allocations_on_the_callers_of_your_api
 
-* Word Frequency exercise
+* Memory and GC exercises
 
 Follow the instructions inside
 
@@ -1600,9 +1600,6 @@ Just loop over the text to search for separators (only ' ' and '\n'), extract th
 
 To prove the solution, repeat the steps above. Specifically, check how many requests/sec we are now able to fulfill with `hey`
 
-* Strings allocations exercise
-
-
 * Strings allocations exercise solution
 
 Have a look at the proposed solution: there are various way to fulfill the task
@@ -1613,10 +1610,6 @@ To compare them
     benchstat bench.txt
 
 Preallocated slice is the winner!
-
-* Run Length Encoding Part 2 exercise
-
-* Run Length Encoding Part 2 exercise solution
 
 * Go 1.13
 
