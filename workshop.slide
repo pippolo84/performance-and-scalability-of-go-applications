@@ -1141,27 +1141,27 @@ This effect is described by the [[https://en.wikipedia.org/wiki/Amdahl%27s_law][
 
 * WordLineCount exercise solution
 
-What about an I/O bound load? We gain a great performance improvement using concurrency, but increasing the parallelism level does not change anything
+What about an I/O bound load? We get a great performance improvement using concurrency, but increasing the parallelism level does not change anything
 
-    $ time GOMAXPROCS=1 ./wordcount -word This -goroutines 0
-    real    0m8,718s
-    user    0m0,296s
-    sys     0m0,045s
+    $ time GOMAXPROCS=1 ./wordlinecount -word This
+    real    0m10,551s
+    user    0m0,278s
+    sys     0m0,067s
 
-    $ time GOMAXPROCS=1 ./wordcount -word This -goroutines 8
-    real    0m5,521s
-    user    0m0,217s
-    sys     0m0,064s
+    $ time GOMAXPROCS=8 ./wordlinecount -word This
+    real    0m10,002s
+    user    0m0,280s
+    sys     0m0,091s
 
-    $ time GOMAXPROCS=8 ./wordcount -word This -goroutines 0
-    real    0m8,695s
-    user    0m0,299s
-    sys     0m0,076s
+    $ time GOMAXPROCS=1 ./solution -word This -goroutines 8
+    real    0m5,977s
+    user    0m0,220s
+    sys     0m0,091s
 
-    $ time GOMAXPROCS=8 ./wordcount -word This -goroutines 8
-    real    0m5,609s
-    user    0m0,271s
-    sys     0m0,082s
+    $ time GOMAXPROCS=8 ./solution -word This -goroutines 8
+    real    0m6,254s
+    user    0m0,291s
+    sys     0m0,085s
 
 * The Go memory allocator & garbage collector
 
@@ -1400,7 +1400,9 @@ Remember that Go is heavily used to build high-performance web services, so OOMs
 
 * Garbage collection in Go
 
-Concurrent tri-color mark & sweep collector
+*Concurrent*Tri-color*Mark*&*Sweep* collector
+
+The concurrent implementation guarantees lower latencies at the cost of a reduced throughput, due to an increased total amount of GC work
 
 * Tri-color mark & sweep algorithm
 
@@ -1563,10 +1565,6 @@ To slow down the allocation rate, the GC recruits the allocating goroutines to a
 
 .image img/MarkAssistTrace.png _ 620
 
-#feedback loop
-
-#Stress can be defined as how fast the application is allocating heap memory within a given amount of time. It’s that stress that determines the pace at which the collector needs to run. Before the collector starts a collection, it calculates the amount of time it believes it will take to finish the collection. Then once a collection is running, latencies will be inflicted on the running application that will slow down application work. Every collection adds to the overall latency of the application. One misconception is thinking that slowing down the pace of the collector is a way to improve performance. The idea being, if you can delay the start of the next collection, then you are delaying the latency it will inflict. Being sympathetic with the collector isn’t about slowing down the pace. You could decide to change the GC Percentage value to something larger than 100. This will increase the amount of heap memory that can be allocated before the next collection has to start. This could result in the pace of collection to slow down. Don’t consider doing this. Attempting to directly affect the pace of collection has nothing to do with being sympathetic with the collector. It’s really about getting more work done between each collection or during the collection. You affect that by reducing the amount or the number of allocations any piece of work is adding to heap memory. Note: The idea is also to achieve the throughput you need with the smallest heap possible. Remember, minimizing the use of resources like heap memory is important when running in cloud environments. Adjusting the pace of the collection to delay the latency cost is not how you improve the performance of your application. It’s about reducing the amount of time the collector needs to run, which in turn will reduce the amount of latency cost being inflicted. The latency costs inflicted by the collector has been explained, but let me summarize it again for clarity.
-
 * Garbage collection performance impact
 
 To summarize, the garbage collection inflicts latencies to our running application through these means
@@ -1576,13 +1574,13 @@ To summarize, the garbage collection inflicts latencies to our running applicati
 - write barrier enabled during mark phase
 - mark assist for goroutines allocating heavily during mark phase
 
-Sweep phase are negligible
+Sweep phases are negligible
 
 * Performance guidelines
 
 You can tune the garbage collector modifying *GOGC* environment variable
 
-If you increase it, you will slow down the garbage collector pacing
+If you increase it, you will slow down the garbage collector pace
 
 *Quick*quiz*: can you guess why this is not the best thing to do in most cases?
 

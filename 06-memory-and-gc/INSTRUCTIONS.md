@@ -2,10 +2,10 @@
 
 ## Word Counter
 
-We want to simulate a web service where we read data from multiple social networks APIs and then output a summary regarding all posts and comments of a user.
+We want to simulate a web service where we read data from multiple social networks APIs and then output a summary about all posts and comments of a user.
 
 We have a single endpoint from which we download the user info (i.e. his real name) and a series of endpoints (two for each social networks) to fetch user posts and comments.
-We want to analyze posts and comments body, to output a summary containing all the words used, along with their frequencies.
+We want to analyze posts and comments body, to extract all the words used, along with their frequencies.
 
 The data format for both the source APIs and the responses of our web service is JSON.
 

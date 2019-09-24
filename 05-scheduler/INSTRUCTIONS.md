@@ -51,8 +51,9 @@ The program will issue 8 GET requests to https://www.gutenberg.org/files/16/16-0
 
 ### Complete the exercise
 
-Read the source code, try to understand if the code may benefit from concurrency and/or parallelization
-Time, profile and trace the program. You may want to use the `GOMAXPROCS` env var to tune the number of OS threads to use.
+Read the source code, try to understand if the code may benefit from concurrency and/or parallelization.
+
+Time profile and trace it. You may want to use the `GOMAXPROCS` env var to tune the number of Ps to use.
 
 Is it possible to exploit Go concurrency support to make it faster? And, if so, to which extent?
 
