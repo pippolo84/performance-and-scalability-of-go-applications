@@ -889,20 +889,20 @@ As a reference, let's compare runlengthencoding with the gzip/gunzip utilities.
     sys     0m0,006s
 
     $ time ./runlengthencoding e divina-commedia.txt
-    real    0m0,519s
-    user    0m0,179s
-    sys     0m0,341s
+    real    0m1,617s
+    user    0m0,568s
+    sys     0m1,065s
 
     $ time ./runlengthencoding d encoded.rle
-    real    0m0,985s
-    user    0m0,524s
-    sys     0m0,463s
+    real    0m2,075s
+    user    0m0,845s
+    sys     0m1,249s
 
 Lot of room for improvement!
 
 * Run Length Encoding exercise solution
 
-The -cpuprofile options gives us the ability to generate a CPU profile and store it in a file:
+Let's inspect this code adding a `-cpuprofile` option to store the profile in a file
 
     ./runlengthencoding -cpuprofile cpu.prof e divina-commedia.txt
 
@@ -914,35 +914,37 @@ What can you see from this profile?
 
 * Run Length Encoding exercise solution
 
-.image img/RlePprofCpu.png _ 1024
+.image img/RlePprofCpu.png _ 500
 
 * Run Length Encoding exercise solution
 
-We are spending the majority of the time doing syscall. Specifically, the read syscall.
+We are spending the majority of the time doing syscalls.
 
 A read syscall for very few bytes in memory can cost us [[http://arkanis.de/weblog/2017-01-05-measurements-of-system-call-performance-and-overhead][from ~50 to ~100ns]] (and Meltdown/Spectre mitigation patches are [[https://www.zdnet.com/article/linux-meltdown-patch-up-to-800-percent-cpu-overhead-netflix-tests-show/][making it worse]])
 
-Since we are passing a 1-byte buffer, we are essentially doing unbufferead read: the total number of read syscalls equals the number of input stream bytes.
+We are using unbufferead read and write, 1 byte at a time.
+
+For the encoding, the total number of syscalls equals the number of encoded bytes.
 
 * Run Length Encoding exercise solution
 
 To solve the problem, we can simply buffer our read operations using [[https://golang.org/pkg/bufio/#NewReader][bufio.NewReader]]
 
     $ time ./solution e divina-commedia.txt
-    real    0m0,017s
-    user    0m0,018s
-    sys     0m0,000s
+    real    0m0,020s
+    user    0m0,017s
+    sys     0m0,004s
 
     $ time ./solution d encoded.rle
-    real    0m0,034s
-    user    0m0,036s
-    sys     0m0,000s
+    real    0m0,024s
+    user    0m0,020s
+    sys     0m0,005s
 
 Here, you should note how the sys time has dropped down!
 
-But...
+* Parallel quicksort exercise solution
 
-There is much more room for improvement in this code... We'll talk about it later!
+Live demo
 
 * The Go scheduler
 

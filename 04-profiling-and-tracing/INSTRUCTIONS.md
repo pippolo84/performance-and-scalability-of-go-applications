@@ -2,7 +2,7 @@
 
 ## Run Length Encoding
 
-[Run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding) is a simple form of data compression, where a stream of bytes is stored as a sequence of pairs <data_value, data_count>.
+[Run-length encoding](https://en.wikipedia.org/wiki/Run-length_encoding) is a simple form of data compression, where a stream of bytes is stored as a sequence of pairs <data_count, data_value>.
 
 As an example, consider the following byte stream:
 
@@ -47,7 +47,7 @@ This will create the `decoded.out` file
 
 To verify that the starting file and the decoded file contains the same data, compare their md5sum digest:
 
-`md5sum divina-commedia.txt decoded.txt`
+`md5sum divina-commedia.txt decoded.out`
 
 Inside the `rle` package you will also find some unit tests to check the correctness of your changes.
 
@@ -68,7 +68,7 @@ In the `parallelqsort` folder, you can find an implementation of a parallel vers
 
 ### Complete the exercise
 
-Read the source code to understand how it works. Build the program, execute it a generate a trace file.
+Read the source code to understand how it works. Build the program, execute it and generate a trace file.
 Then, examine the trace and answer the following questions:
 
 - How many goroutines, at most, are alive during the program?
