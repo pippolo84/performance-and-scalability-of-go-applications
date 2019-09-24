@@ -10,7 +10,7 @@ https://github.com/Pippolo84
 
 * Before starting
 
-- check your Go environment compiling and running the "Hello World"
+- check your Go environment: compile and run the "Hello World"
     package main
 
     import "fmt"
