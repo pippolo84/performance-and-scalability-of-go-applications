@@ -650,8 +650,6 @@ Every 10ms, the signal `SIGPROF` is delivered, and the handler unwinds the stack
 
 * How the Heap profiler works
 
-#TODO: give more details for heap profiling, here or later (see ~/go-project/src/workshop/wordcount)
-
 These profiles don't require the delivery of any signals, the runtime itself will collect samples while allocating memory on the heap.
 Not all allocations are sampled, if you like to see every one of them, you should set
 
@@ -785,8 +783,6 @@ To save an execution trace inside `trace.out` file
 
 Let's explore it with a live demo!
 
-#TODO: add tracing abilities to the example programs
-
 * Run Length Encoding exercise
 
 Follow the instructions inside
@@ -916,7 +912,6 @@ Based on a M:N threading models, where we *multiplex* N goroutines onto M OS thr
 
 * Scheduler steady state
 
-#TODO: change picture
 .image img/SchedulerSteadyState.png 450 _
 
 At startup, the Go runtime creates *GOMAXPROCS* Ps, where *GOMAXPROCS* is set to the number of available cores
@@ -1528,15 +1523,34 @@ non pointer types are not scanned by the GC
 
 * A primer on escape analysis
 
-http://www.agardner.me/golang/garbage/collection/gc/escape/analysis/2015/10/18/go-escape-analysis.html
+We've seen how to inspect the compiler decisions
 
-* See also
+    go build -gcflags="-m"
 
-https://dave.cheney.net/high-performance-go-workshop/gophercon-2019.html#memory-and-gc
+If you want a more verbose output
 
-This is valid for our exercises (getComments, getPosts, RLE):
+    go build -gcflags="-m -m"
+    go build -gcflags="-m -m -m"
 
-https://dave.cheney.net/high-performance-go-workshop/gophercon-2019.html#dont_force_allocations_on_the_callers_of_your_api
+and so on
+
+* Escape analysis examples
+
+Have a look at
+
+    escapeanalysisexample/main.go
+
+* Take home message
+
+Do *not* try to guess compiler decisions. Use escape analysis and profiling to understand allocations patterns.
+
+_General_guidelines_
+
+These patterns usually lead to variables escaping on the heap
+
+- Sending pointers or values containing pointers to channels
+- Using slices with size unknown at compile time
+- Calling methods on an interface type
 
 * Memory and GC exercises
 
@@ -1551,21 +1565,27 @@ Happy coding!
 to found the problem, first look at a CPU profile
 
 1) start the server
-2) go tool pprof -http=:9090 http://localhost:8080/debug/pprof/profile
-3) hey -m GET -c 10 -n 1000 "http://localhost:8080/search?user=1"
+2) start profiling
+    
+    go tool pprof -http=:9090 http://localhost:8080/debug/pprof/profile
 
-N.B.: IN THIS ORDER, since the cpu profiler samples data every 10ms
+3)  load the server
 
-You'll see A LOT of time spent in WordsFreq, in particular in strings.Fields!
+    hey -m GET -c 10 -n 1000 "http://localhost:8080/search?user=1"
+
+N.B.: *in*this*order*, since the cpu profiler samples data every 10ms
+
+You'll see *a*huge*amount* of time spent in WordsFreq, in particular in `strings.Fields`!
 
 * Word Frequency exercise solution
 
 Then look at the heap profile
 
-1) go tool pprof -http=:9090 http://localhost:8080/debug/pprof/heap
-2) select `alloc_space` samples
+    go tool pprof -http=:9090 http://localhost:8080/debug/pprof/heap
 
-You'll see A LOT of allocations in strings.Fields!
+remember to select `alloc_space` samples type!
+
+You'll see *a*huge*number* of allocations in `strings.Fields`!
 
 * Word Frequency exercise solution
 
@@ -1586,17 +1606,21 @@ We can look at the trace too!
 
 Even tracing just a single request, we can see that:
 - the heap is growing significantly
-- there are goroutines in MARK ASSIST
+- there are goroutines in _MARK_ASSIST_
+
+* Word Frequency exercise solution
 
 2) inspect the work of the GC
 
     GODEBUG=gctrace=1 ./wordcounter
 
+to confirm what we've seen with the traces
+
 * Word Frequency exercise solution
 
 To reduce allocations and GC pressure, a possible solution is to avoid `strings.Fields`
 
-Just loop over the text to search for separators (only ' ' and '\n'), extract the words and account them in wfreq
+Just loop over the text to search for separators (only ' ' and '\n'), extract the words and account them in `wfreq`
 
 To prove the solution, repeat the steps above. Specifically, check how many requests/sec we are now able to fulfill with `hey`
 
@@ -1609,13 +1633,17 @@ To compare them
     go test -v . -bench=. -benchmem -count=5 > bench.txt
     benchstat bench.txt
 
-Preallocated slice is the winner!
+Preallocated slice is the winner: less allocations -> better performance!
+
+* Bonus material
 
 * Go 1.13
 
-sync.Pool
-mid-stack inliner
+[[https://github.com/golang/go/issues/22950][sync.Pool]]
+
+
+[[https://blog.filippo.io/efficient-go-apis-with-the-inliner/][mid-stack inliner]]
 
 * Optimization workflow
 
-see https://github.com/dgryski/go-perfbook/blob/master/performance.md#optimization-workflow
+[[https://github.com/dgryski/go-perfbook/blob/master/performance.md#concrete-optimization-tips][Benchmark. Analyze. Improve. Verify. Iterate.]]
