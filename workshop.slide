@@ -262,6 +262,84 @@ That's why the rest of this workshop is dedicated to that! ;-)
 
 * Modern CPU architecture
 
+* Microprocessors evolution
+
+.image img/40-years-processor-trend.png 580 _
+
+* Single core performance
+
+Single core performance is approaching a limit
+
+CPUs manufacturers need to keep power consumption, and thus heat dissipation, below levels that will damage their CPUs
+
+* Number of transistors
+
+Number of transistors on a die continues to increase
+
+But packing more transistors in the same area is getting harder and expensive!
+
+In conclusion, adding cores is not that easy.
+
+Besides, improvements from parallelization are limited by the portion of work that is not parallelizable.
+
+* Architectural improvements
+
+*Out*of*order* execution to take advantage of _Instruction_level_parallelism_
+
+    1) h = a + b
+    2) f = c + d
+    3) g = h * f
+
+1) and 2) can be executed in parallel
+
+But connecting each execution unit to all others is costly
+
+* Architectural improvements
+
+*Speculative*execution* to guess the outcome of a branch condition and keeps the pipeline full
+
+.image https://upload.wikimedia.org/wikipedia/commons/2/21/Fivestagespipeline.png
+
+Performance improvements depend on the rate of branch prediction successes!
+
+* Bulk operations
+
+Modern CPUs are optimized for *bulk* operations
+
+- memory is loaded per multiple of caches lines
+- SIMD instructions
+
+We've seen this effects in the introductory exercise!
+
+* Memory latency
+
+.image https://www.extremetech.com/wp-content/uploads/2017/07/Ch5-fig02.jpg
+
+* Memory latency
+
+L1 cache reference ~1ns
+Branch mispredict ~3ns
+L2 cache reference ~4ns
+Main memory reference ~100ns
+
+from [[https://people.eecs.berkeley.edu/~rcs/research/interactive_latency.html][Latency Numbers Every Programmer Should Know]]
+
+Caches are critical to reduce memory latencies, unfortunately, their size are limited by their physical size on CPU die and power consumption
+
+* Conclusions
+
+_future_programmers_will_not_longer_be_able_to_rely_on_faster_hardware_to_fix_slow_programs_or_slow_programming_languages_
+
+from [[http://www.gotw.ca/publications/concurrency-ddj.htm][The free lunch is over]] - Herb Sutter
+
+* Why Go?
+
+- efficient type system: it does not pretend every number is an ideal float
+
+- efficient implementation of structs: in contrast with java objects that store references
+
+- easily scales to multiple cores for highly parallelizable applications
+
 * Benchmarking
 
 * A stable environment
