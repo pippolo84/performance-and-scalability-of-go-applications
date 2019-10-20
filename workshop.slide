@@ -557,8 +557,8 @@ Using the -benchmem option, go will report the heap allocations per operation
     pkg: performance-and-scalability-of-go-applications/01-introduction/isogram/solution
     BenchmarkIsIsogram/01-map-8               200000              7458 ns/op            1273 B/op         11 allocs/op
     BenchmarkIsIsogram/02-sorting-8           300000              5266 ns/op             928 B/op         25 allocs/op
-    BenchmarkIsIsogram/03-linear-search-8            1000000              1315 ns/op              48 B/op          3 allocs/op
-    BenchmarkIsIsogram/04-bool-array-8               3000000               532 ns/op               0 B/op          0 allocs/op
+    BenchmarkIsIsogram/03-linear-search-8     1000000              1315 ns/op              48 B/op          3 allocs/op
+    BenchmarkIsIsogram/04-bool-array-8        3000000               532 ns/op               0 B/op          0 allocs/op
     PASS
     ok      performance-and-scalability-of-go-applications/01-introduction/isogram/solution 6.692s
 
